@@ -1,0 +1,10 @@
+*~
+*.aps
+*.user
+ipch/
+*.sdf
+*.suo
+debug/
+release/
+!*/lib/debug/
+!*/lib/release/
