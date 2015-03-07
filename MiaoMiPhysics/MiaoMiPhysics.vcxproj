@@ -86,12 +86,16 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="glincludes.h" />
     <ClInclude Include="shader.h" />
+    <ClInclude Include="util.h" />
     <ClInclude Include="volumeRenderer.h" />
+    <ClInclude Include="voxelization.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
+    <ClCompile Include="util.cpp" />
     <ClCompile Include="volumeRenderer.cpp" />
+    <ClCompile Include="voxelization.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

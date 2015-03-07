@@ -16,9 +16,9 @@ extern int ox = 0, oy = 0;
 //GLfloat camera_trans_offset[] = {0.0f , 0.0f, -4.0f};
 //GLfloat camera_rot_offset[] = {0.0f, 0.0f, 0.0f};
 extern const GLfloat offset = 0.1f;
-extern glm::vec3 camera_trans = glm::vec3(0.0f, 0.0f, -4.0f);
+extern glm::vec3 camera_trans = glm::vec3(0.0f, 0.0f, -10.0f);
 extern glm::vec3 camera_rot = glm::vec3(0.0f, 0.0f, 0.0f);
-extern glm::vec3 camera_trans_offset = glm::vec3(0.0f, 0.0f, -4.0f);
+extern glm::vec3 camera_trans_offset = glm::vec3(0.0f, 0.0f, -10.0f);
 extern glm::vec3 camera_rot_offset = glm::vec3(0.0f, 0.0f, 0.0f);
 
 extern glm::mat4 Model = glm::mat4(1.0f);

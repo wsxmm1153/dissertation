@@ -2,8 +2,9 @@
 #include "camera.h"
 #include <stdio.h>
 #include "volumeRenderer.h"
+#include "voxelization.h"
 
-
+static VoxelMaker* voxel_maker_ptr_s;
 static GLuint texName;
 //box and its index
 
@@ -78,6 +79,7 @@ bool loadTextures() {
 
 	delete [] pVolume;
 
+	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 1024);
 	return true;
 }
 
@@ -101,7 +103,8 @@ void display()
 	glm::mat4 mv = View * Model;
 	glm::mat4 p = Projection;
 
-	VolumeRenderer::drawPhysicsWorld(texName, &mv, &p);
+	//VolumeRenderer::drawPhysicsWorld(texName, &mv, &p);
+	voxel_maker_ptr_s->DrawDepth(glm::ivec3(0, 0, 0), voxel_maker_ptr_s->GetSize(), &mv, &p);
 
 	glutPostRedisplay();
 	glutSwapBuffers();
