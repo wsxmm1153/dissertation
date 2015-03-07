@@ -26,8 +26,8 @@ VoxelMaker::VoxelMaker():
 	draw_depth_program_(0),
 	vertice_buffer_handel_(0)
 {
-	//draw_depth_program_ = compileProgram(drawDepthVertex, drawDepthFragment);
-	draw_depth_program_ = compileProgram(commonVertex, commonFragment);
+	draw_depth_program_ = compileProgram(drawDepthVertex, drawDepthFragment);
+	//draw_depth_program_ = compileProgram(commonVertex, commonFragment);
 	glGenBuffers(1, &vertice_buffer_handel_);
 }
 
@@ -63,15 +63,15 @@ VoxelMaker* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 	}
 
 	//GLuint vao;
-	glGenVertexArrays(1, &(voxel_maker_ptr->vao_));
-	glBindVertexArray(voxel_maker_ptr->vao_);
+	//glGenVertexArrays(1, &(voxel_maker_ptr->vao_));
+	//glBindVertexArray(voxel_maker_ptr->vao_);
 	glBindBuffer(GL_ARRAY_BUFFER, voxel_maker_ptr->vertice_buffer_handel_);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * (voxel_maker_ptr->vertices_).size(), vertice_data, GL_STATIC_DRAW);
-	GLint vertice_loc = glGetAttribLocation(voxel_maker_ptr->draw_depth_program_, "vVertex");
-	glEnableVertexAttribArray(vertice_loc);
-	if (vertice_loc >= 0)
-		glVertexAttribPointer(vertice_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glBindVertexArray(0);
+	//GLint vertice_loc = glGetAttribLocation(voxel_maker_ptr->draw_depth_program_, "vVertex");
+	//glEnableVertexAttribArray(vertice_loc);
+	//if (vertice_loc >= 0)
+	//	glVertexAttribPointer(vertice_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	//glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	delete vertice_data;
@@ -187,36 +187,39 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 size, glm::mat4 *m
 	glm::vec3 vertice_max, vertice_min;
 	FindBoundingBox(vertice_max, vertice_min, size, start_min);
 	FindMiddle(vertice_max, vertice_min, look_at);
-	eye = glm::vec3(0.0f, 0.0f, -1000.0f);
-	up = glm::vec3(0.0f, 1000.0f, 0.0f);
+	eye = glm::vec3(0.0f, 0.0f, -10.0f);
+	up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-	//glm::mat4 view = glm::lookAt(eye, look_at, up);
-	//glm::mat4 projection = glm::ortho(vertice_min.x, vertice_max.x, vertice_min.y, vertice_max.y, vertice_min.z, vertice_max.z);
+	glm::mat4 view = glm::lookAt(eye, look_at, up);
+	view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
+	//glm::mat4 view = glm::mat4(1.0f);
+	glm::mat4 projection = glm::ortho(vertice_min.x, vertice_max.x, vertice_min.y, vertice_max.y, vertice_min.z, vertice_max.z);
 	//glm::mat4 view = View * Model;
 	//glm::mat4 projection = projection;
-	//GLuint vao;
-	//glGenVertexArrays(1, &vao);
-	//glBindVertexArray(vao);
-	//glBindBuffer(GL_ARRAY_BUFFER, vertice_buffer_handel_);
-	//GLint vertice_loc = glGetAttribLocation(draw_depth_program_, "vVertex");
-	//glEnableVertexAttribArray(vertice_loc);
-	//if (vertice_loc >= 0)
-	//	glVertexAttribPointer(vertice_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	//glBindBuffer(GL_ARRAY_BUFFER, 0);
-	//glBindVertexArray(0);
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vertice_buffer_handel_);
+	GLint vertice_loc = glGetAttribLocation(draw_depth_program_, "vVertex");
+	glEnableVertexAttribArray(vertice_loc);
+	if (vertice_loc >= 0)
+		glVertexAttribPointer(vertice_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 
 	glUseProgram(draw_depth_program_);
 	
 	GLint mv_mat_loc = glGetUniformLocation(draw_depth_program_, "mv");
-	glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(*mv));
+	glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(view));
 	GLint p_mat_loc = glGetUniformLocation(draw_depth_program_, "p");
-	glUniformMatrix4fv(p_mat_loc, 1, GL_FALSE, glm::value_ptr(*p));
+	glUniformMatrix4fv(p_mat_loc, 1, GL_FALSE, glm::value_ptr(projection));
 
-	glBindVertexArray(vao_);
+	glBindVertexArray(vao);
 	glDrawArrays(GL_TRIANGLES, 0, vertices_.size());
 	
 	glBindVertexArray(0);
 	glUseProgram(0);
+	glDeleteVertexArrays(1, &vao);
 	glFinish();
 	return NULL;
 }
