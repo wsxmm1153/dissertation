@@ -17,6 +17,8 @@ extern const char* backFaceTexcoordsVertex;
 extern const char* backFaceTexcoordsFragment;
 extern const char* rayCastingVertex;
 extern const char* rayCastingFragment;
+extern const char* drawDepthVertex;
+extern const char* drawDepthFragment;
 
 #include <GL/glew.h>
 #include <stdio.h>

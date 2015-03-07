@@ -10,7 +10,7 @@ out vec4 vVaryingColor;\n
 void main(void)\n
 {\n
 	gl_Position = p * mv * vec4(vVertex, 1.0);\n
-	vVaryingColor = vec4(vColor, 1.0);\n
+	vVaryingColor = vec4(1.0, 1.0, 1.0, 1.0);\n
 }\n
 );
 
@@ -25,7 +25,7 @@ void main(void)\n
 );
 
 const char *backFaceTexcoordsVertex = STRINGIFY(
-#version 420\n
+#version 430\n
 in vec3 vVertex;\n
 in vec3 vTexcoord;\n
 uniform mat4 mv;\n
@@ -39,7 +39,7 @@ void main(void)\n
 );
 
 const char *backFaceTexcoordsFragment = STRINGIFY(
-#version 420\n
+#version 430\n
 in vec4 vVaryingColor;\n
 out vec4 FragColor;\n
 void main(void)\n
@@ -49,7 +49,7 @@ void main(void)\n
 );
 
 const char *rayCastingVertex = STRINGIFY(
-#version 420\n
+#version 430\n
 in vec3 vVertex;\n
 in vec3 vTexcoord;\n
 uniform mat4 mv;\n
@@ -63,7 +63,7 @@ void main(void)\n
 );
 
 const char *rayCastingFragment = STRINGIFY(
-#version 420\n
+#version 430\n
 in vec3 vVaryingTexCoord;\n
 out vec4 FragColor;\n
 uniform sampler2D backTex;\n
@@ -96,6 +96,27 @@ void main(void)\n
 	}\n
 
 	FragColor = vec4(colorSum, 1.0);\n
+}\n
+);
+
+const char *drawDepthVertex = STRINGIFY(
+#version 430\n
+	in vec3 vVertex;\n
+	uniform mat4 mv;\n
+	uniform mat4 p;\n
+	void main(void)\n
+{\n
+gl_Position = p * mv * vec4(vVertex, 1.0);\n
+}\n
+);
+
+const char *drawDepthFragment = STRINGIFY(
+#version 430\n
+	out vec4 FragColor;\n
+	void main(void)\n
+{\n
+FragColor = vec4(/*gl_FragCoord.xy / gl_FragCoord.w,*/ 0.0, 0.0, gl_FragCoord.z, 1.0f);\n
+//FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n
 }\n
 );
 

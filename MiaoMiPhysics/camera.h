@@ -43,6 +43,7 @@ void cameraDisplay()
 	glm::mat4 translateView = glm::translate(glm::mat4(1.0f), camera_trans_offset);
 	glm::mat4 rotateXView = glm::rotate(translateView, camera_rot_offset.x, glm::vec3(1.0f, 0.0f, 0.0f));
 	View = glm::rotate(rotateXView, camera_rot_offset.y, glm::vec3(0.0f, 1.0f, 0.0f));
+	Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f, 0.3f, 0.3f));
 }
 
 void mouse(int butten, int state, int x, int y)

@@ -2,8 +2,9 @@
 #include "camera.h"
 #include <stdio.h>
 #include "volumeRenderer.h"
+#include "voxelization.h"
 
-
+static VoxelMaker* voxel_maker_ptr_s;
 static GLuint texName;
 //box and its index
 
@@ -85,23 +86,24 @@ void init(void)
 {
 	glewInit();
 	glClearColor(0.0, 0.0, 0.0, 0.0);
-
-	loadTextures();
+	glShadeModel(GL_SMOOTH);
+	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 1024);
+	//loadTextures();
 }
 
 void display()
 {
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-
 	cameraDisplay();
 
 	glm::mat4 mv = View * Model;
 	glm::mat4 p = Projection;
 
-	VolumeRenderer::drawPhysicsWorld(texName, &mv, &p);
+	//VolumeRenderer::drawPhysicsWorld(texName, &mv, &p);
+	int _x,_y,_z;
+	voxel_maker_ptr_s->GetSize(_x, _y, _z);
+	voxel_maker_ptr_s->DrawDepth(glm::ivec3(0, 0, 0), glm::ivec3(_x, _y, _z), &mv, &p);
 
 	glutPostRedisplay();
 	glutSwapBuffers();
