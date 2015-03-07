@@ -10,7 +10,7 @@ out vec4 vVaryingColor;\n
 void main(void)\n
 {\n
 	gl_Position = p * mv * vec4(vVertex, 1.0);\n
-	vVaryingColor = vec4(vColor, 1.0);\n
+	vVaryingColor = vec4(1.0, 1.0, 1.0, 1.0);\n
 }\n
 );
 
@@ -115,8 +115,8 @@ const char *drawDepthFragment = STRINGIFY(
 	out vec4 FragColor;\n
 	void main(void)\n
 {\n
-//FragColor = vec4(gl_FragCoord.xyz / gl_FragCoord.w, 1.0f);\n
-FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n
+FragColor = vec4(/*gl_FragCoord.xy / gl_FragCoord.w,*/ 0.0, 0.0, gl_FragCoord.z, 1.0f);\n
+//FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n
 }\n
 );
 

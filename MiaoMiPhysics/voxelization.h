@@ -64,7 +64,7 @@ public:
 	static VoxelMaker* MakeObjToVoxel(const char* obj_path, int voxel_size);
 	static VoxelStructure* LoadVoxelFromFile(const char* voxel_path);
 	static void SaveToFile(const VoxelStructure* voxel, char* path);
-	glm::ivec3 GetSize() {return glm::ivec3(width_, height_, depth_);}
+	void GetSize(int& width, int& height, int& depth) {width = width_;height = height_; depth = depth_;}
 
 	//ÔÝ¶¨Îªpublic²âÊÔ
 	float* DrawDepth(
