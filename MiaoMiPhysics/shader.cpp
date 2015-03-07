@@ -10,7 +10,7 @@ out vec4 vVaryingColor;\n
 void main(void)\n
 {\n
 	gl_Position = p * mv * vec4(vVertex, 1.0);\n
-	vVaryingColor = vec4(vColor, 1.0);\n
+	vVaryingColor = vec4(1.0, 1.0, 1.0, 1.0);\n
 }\n
 );
 

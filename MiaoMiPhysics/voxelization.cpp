@@ -210,13 +210,14 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 size, glm::mat4 *m
 	GLint mv_mat_loc = glGetUniformLocation(draw_depth_program_, "mv");
 	glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(*mv));
 	GLint p_mat_loc = glGetUniformLocation(draw_depth_program_, "p");
-	glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(*p));
+	glUniformMatrix4fv(p_mat_loc, 1, GL_FALSE, glm::value_ptr(*p));
 
 	glBindVertexArray(vao_);
 	glDrawArrays(GL_TRIANGLES, 0, vertices_.size());
 	
 	glBindVertexArray(0);
 	glUseProgram(0);
+	glFinish();
 	return NULL;
 }
 
