@@ -69,9 +69,7 @@ public:
 	//ÔÝ¶¨Îªpublic²âÊÔ
 	float* DrawDepth(
 		glm::ivec3 start_min,
-		glm::ivec3 size,
-		glm::mat4* mv,
-		glm::mat4* p
+		glm::ivec3 end_max
 		);
 protected:
 	//data
@@ -96,7 +94,7 @@ protected:
 	void FindMiddle(glm::vec3 current_max, glm::vec3 current_min, glm::vec3& middle_position);
 
 	void FindBoundingBox(glm::vec3& vertices_max, glm::vec3& vertices_min,
-		glm::ivec3 size, glm::ivec3 min_start);
+		glm::ivec3 start_min, glm::ivec3 end_max);
 	void FindBoundingBox();
 private:
 };

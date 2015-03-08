@@ -87,11 +87,11 @@ VoxelMaker* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 
 void VoxelMaker::FindBoundingBox()
 {
-	float X_max = numeric_limits<float>::min(),
+	float X_max = -numeric_limits<float>::max(),
 		X_min = numeric_limits<float>::max(),
-		Y_max = numeric_limits<float>::min(),
+		Y_max = -numeric_limits<float>::max(),
 		Y_min = numeric_limits<float>::max(),
-		Z_max = numeric_limits<float>::min(), 
+		Z_max = -numeric_limits<float>::max(), 
 		Z_min = numeric_limits<float>::max();
 
 	std::vector<glm::vec3>::iterator it = vertices_.begin();
@@ -155,7 +155,7 @@ void VoxelMaker::SetSize(int size)
 			else
 			{
 				box_size_i[i] = size_i + 1;
-				vertices_max_[i] = (float)box_size_i[i] / scale_f; 
+				vertices_max_[i] = (float)box_size_i[i] / scale_f + vertices_min_[i]; 
 			}
 		}
 	}
@@ -175,9 +175,11 @@ void VoxelMaker::FindMiddle(glm::vec3 current_max, glm::vec3 current_min, glm::v
 	middle_position = (v_max + v_min) / 2.0f;
 }
 
-float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 size, glm::mat4 *mv,
-	glm::mat4 *p)
+float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 {
+	//glDisable(GL_CULL_FACE);
+	glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
+	glViewport(0, 0, size.x, size.y);
 	glClearColor(0.0f, 1.0f, 0.0f, 0.0f);
 	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
@@ -185,15 +187,20 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 size, glm::mat4 *m
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::vec3 eye, up, look_at;
 	glm::vec3 vertice_max, vertice_min;
-	FindBoundingBox(vertice_max, vertice_min, size, start_min);
+	FindBoundingBox(vertice_max, vertice_min, start_min, end_max);
 	FindMiddle(vertice_max, vertice_min, look_at);
-	eye = glm::vec3(0.0f, 0.0f, -10.0f);
+	
+	//
+	eye = glm::vec3(look_at.x, look_at.y, vertice_max.z);
 	up = glm::vec3(0.0f, 1.0f, 0.0f);
-
+	
 	glm::mat4 view = glm::lookAt(eye, look_at, up);
-	view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
-	//glm::mat4 view = glm::mat4(1.0f);
-	glm::mat4 projection = glm::ortho(vertice_min.x, vertice_max.x, vertice_min.y, vertice_max.y, vertice_min.z, vertice_max.z);
+	//ortho()是以eye为基准的。
+	vertice_min -= look_at;
+	vertice_max -= look_at;
+	//model = glm::translate(model, look_at);
+	//view = glm::mat4(1.0f);
+	glm::mat4 projection = glm::ortho(vertice_min.x, vertice_max.x, vertice_min.y, vertice_max.y, 0.0f , vertice_max.z - vertice_min.z);
 	//glm::mat4 view = View * Model;
 	//glm::mat4 projection = projection;
 	GLuint vao;
@@ -209,11 +216,9 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 size, glm::mat4 *m
 
 	glUseProgram(draw_depth_program_);
 	
-	GLint mv_mat_loc = glGetUniformLocation(draw_depth_program_, "mv");
-	glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(view));
-	GLint p_mat_loc = glGetUniformLocation(draw_depth_program_, "p");
-	glUniformMatrix4fv(p_mat_loc, 1, GL_FALSE, glm::value_ptr(projection));
-
+	GLint pvm_mat_loc = glGetUniformLocation(draw_depth_program_, "pvm0");
+	glUniformMatrix4fv(pvm_mat_loc, 1, GL_FALSE, glm::value_ptr(projection * model * view));
+	
 	glBindVertexArray(vao);
 	glDrawArrays(GL_TRIANGLES, 0, vertices_.size());
 	
@@ -225,15 +230,16 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 size, glm::mat4 *m
 }
 
 void VoxelMaker::FindBoundingBox(glm::vec3& vertices_max, glm::vec3& vertices_min,
-	glm::ivec3 size, glm::ivec3 min_start)
+	glm::ivec3 start_min, glm::ivec3 end_max)
 {
 	vertices_max = vertices_max_;
 	vertices_min = vertices_min_;
+	glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
 	float cell_size = vertices_max_.x - vertices_min_.x;
 	cell_size /= (float)width_;
-	vertices_min += glm::vec3(min_start.x * cell_size,
-		min_start.y * cell_size,
-		min_start.z * cell_size);
+	vertices_min += glm::vec3(start_min.x * cell_size,
+		start_min.y * cell_size,
+		start_min.z * cell_size);
 
 	vertices_max = vertices_min + 
 		glm::vec3(size.x * cell_size,
