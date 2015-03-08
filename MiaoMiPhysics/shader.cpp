@@ -102,21 +102,34 @@ void main(void)\n
 const char *drawDepthVertex = STRINGIFY(
 #version 430\n
 	in vec3 vVertex;\n
-	uniform mat4 mv;\n
-	uniform mat4 p;\n
+	uniform mat4 pvm0;\n
+	uniform mat4 pvm1;\n
+	uniform mat4 pvm2;\n
+	uniform mat4 pvm3;\n
+	uniform mat4 pvm4;\n
+	uniform mat4 pvm5;\n
+	smooth out vec3 z_value_front;\n
+	smooth out vec3 z_value_back;\n
 	void main(void)\n
 {\n
-gl_Position = p * mv * vec4(vVertex, 1.0);\n
+gl_Position = pvm0 * vec4(vVertex, 1.0);\n
+vec4 v = vec4(vVertex, 1.0);\n
+z_value_front = vec3((pvm0*v).z, (pvm2*v).z, (pvm4*v).z);\n
+z_value_back = vec3((pvm1*v).z, (pvm3*v).z, (pvm5*v).z);\n
 }\n
 );
 
 const char *drawDepthFragment = STRINGIFY(
 #version 430\n
+	smooth in vec3 z_value_front;\n
+	smooth in vec3 z_value_back;\n
 	out vec4 FragColor;\n
 	void main(void)\n
 {\n
-FragColor = vec4(/*gl_FragCoord.xy / gl_FragCoord.w,*/ 0.0, 0.0, gl_FragCoord.z, 1.0f);\n
-//FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n
+//p*v*m将z变换到了（-1.0f,1.0f）\n
+FragColor = vec4(0.0, 0.0, (z_value_front.x+1.0f)/2.0f, 1.0f);\n
+//test
+//FragColor = vec4(0.0f, 0.0f, (zValue-0.9f)*5.0f, 1.0f);\n
 }\n
 );
 

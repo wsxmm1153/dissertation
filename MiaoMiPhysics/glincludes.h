@@ -1,8 +1,8 @@
 #ifndef _GL_INCLUDE_S_
 #define _GL_INCLUDE_S_
 
-#define SCREENHEIGHT 600
-#define SCREENWIDTH 800
+#define SCREENHEIGHT 768
+#define SCREENWIDTH 1024
 
 //raw files
 //******************************************
