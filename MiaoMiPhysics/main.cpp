@@ -87,23 +87,31 @@ void init(void)
 	glewInit();
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
+	/***************test voxel maker*************************/
 	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 1024);
+	/***************test voxel maker*************************/
+
+	/***************test renderer*************************/
 	//loadTextures();
+	/***************test renderer*************************/
 }
 
 void display()
 {
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+	/***************test renderer*************************/
 	//cameraDisplay();
-
 	//glm::mat4 mv = View * Model;
 	//glm::mat4 p = Projection;
-
 	//VolumeRenderer::drawPhysicsWorld(texName, &mv, &p);
+	/***************test renderer*************************/
+
+	/***************test voxel maker*************************/
 	int _x,_y,_z;
 	voxel_maker_ptr_s->GetSize(_x, _y, _z);
 	voxel_maker_ptr_s->DrawDepth(glm::ivec3(0, 0, 0), glm::ivec3(_x, _y, _z));
+	/***************test voxel maker*************************/
 
 	glutPostRedisplay();
 	glutSwapBuffers();
