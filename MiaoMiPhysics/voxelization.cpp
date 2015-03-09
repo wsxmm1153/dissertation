@@ -81,6 +81,22 @@ VoxelMaker* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 
 	//生成体数据
 	voxel_maker_ptr->SetSize(voxel_size);
+	int x, y, z;
+	voxel_maker_ptr->GetSize(x, y, z);
+	float* cpu_ptr = voxel_maker_ptr->DrawDepth(glm::ivec3(0, 0, 0),
+		glm::ivec3(x-1,y-1,z-1));
+
+	//test
+	//for (int i = x*y; i < x*y*2; i++)
+	//{
+	//	if (cpu_ptr[i] > -10e-30f)
+	//		printf("1");
+	//	else
+	//		printf("0");
+	//	if ((i+1)%x == 0)
+	//		printf("\n");
+	//}
+
 	//暂定
 	return voxel_maker_ptr;
 }
@@ -177,32 +193,18 @@ void VoxelMaker::FindMiddle(glm::vec3 current_max, glm::vec3 current_min, glm::v
 
 float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 {
-	//glDisable(GL_CULL_FACE);
+	//
 	glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
-	glViewport(0, 0, size.x, size.y);
-	glClearColor(0.0f, 1.0f, 0.0f, 0.0f);
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	int buffer_size = size.x*size.y*2 + size.x*size.z*2 + size.y*size.z*2;
+	float* cpu_buffer = new float[buffer_size];
+	memset(cpu_buffer, -2, (buffer_size) * sizeof(float));
+
+	/*********************gpu setup*****************************/
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
-	glm::mat4 model = glm::mat4(1.0f);
-	glm::vec3 eye, up, look_at;
-	glm::vec3 vertice_max, vertice_min;
-	FindBoundingBox(vertice_max, vertice_min, start_min, end_max);
-	FindMiddle(vertice_max, vertice_min, look_at);
-	
-	//
-	eye = glm::vec3(look_at.x, look_at.y, vertice_max.z);
-	up = glm::vec3(0.0f, 1.0f, 0.0f);
-	
-	glm::mat4 view = glm::lookAt(eye, look_at, up);
-	//ortho()是以eye为基准的。
-	vertice_min -= look_at;
-	vertice_max -= look_at;
-	//model = glm::translate(model, look_at);
-	//view = glm::mat4(1.0f);
-	glm::mat4 projection = glm::ortho(vertice_min.x, vertice_max.x, vertice_min.y, vertice_max.y, 0.0f , vertice_max.z - vertice_min.z);
-	//glm::mat4 view = View * Model;
-	//glm::mat4 projection = projection;
+	glDisable(GL_CULL_FACE);
+
+	//vertex vao
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -214,19 +216,74 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	glUseProgram(draw_depth_program_);
-	
-	GLint pvm_mat_loc = glGetUniformLocation(draw_depth_program_, "pvm0");
-	glUniformMatrix4fv(pvm_mat_loc, 1, GL_FALSE, glm::value_ptr(projection * model * view));
-	
-	glBindVertexArray(vao);
-	glDrawArrays(GL_TRIANGLES, 0, vertices_.size());
-	
-	glBindVertexArray(0);
-	glUseProgram(0);
+	//generate out image and initial it
+	GLuint depth_texture_ids[6];
+	glGenTextures(6, depth_texture_ids);
+	unsigned int image_width[3] = {size.x, size.y, size.z};
+	unsigned int image_height[3] = {size.y, size.z, size.x};
+
+	for (int i = 0; i < 6; i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i]);
+		glTexStorage2D(GL_TEXTURE_2D, 0, GL_R32F, 
+			image_width[i/2], image_height[i/2]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 
+			image_width[i/2], image_height[i/2],
+			0, GL_RED, GL_FLOAT, cpu_buffer);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		//glBindImageTexture(0, depth_texture_ids[i], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+	}
+	/*********************gpu setup*****************************/
+
+	/*********************matrix initial************************/
+	glm::mat4 model = glm::mat4(1.0f), view, projection;
+	glm::vec3 eye, up, look_at;
+	glm::vec3 vertice_max, vertice_min;
+	FindBoundingBox(vertice_max, vertice_min, start_min, end_max);
+	FindMiddle(vertice_max, vertice_min, look_at);
+	/*********************matrix initial************************/
+
+	/*********************render 6 times************************/
+	//ortho()是以eye为基准的。
+	unsigned int cpu_buffer_offset[] = {
+		0,
+		size.x * size.y * 2,
+		size.y * size.z * 2 + size.x * size.y * 2
+	};
+	for(int i = 0; i < 3; i++)
+	{
+		glViewport(0, 0, image_width[i], image_height[i]);
+		eye = glm::vec3(look_at.x, look_at.y, look_at.z);	
+		up = glm::vec3(0.0f, 0.0f, 0.0f);
+		//front
+		eye[(i+2)%3] = vertice_max[(i+2)%3];
+		up[(i+1)%3] = 1.0f;
+		view = glm::lookAt(eye, look_at, up);
+		glm::vec3 vertice_min_t = vertice_min - look_at;
+		glm::vec3 vertice_max_t = vertice_max - look_at;
+		projection = glm::ortho(
+			vertice_min_t[i], vertice_max_t[i],
+			vertice_min_t[(i+1)%3], vertice_max_t[(i+1)%3],
+			0.0f-(10e-30f), vertice_max_t[(i+2)%3] - vertice_min_t[(i+2)%3] + (10e-30f));
+		DrawSixTimes(projection*view*model, depth_texture_ids[i*2], vao);
+		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2]);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		//back
+		eye[(i+2)%3] = vertice_min[(i+2)%3];
+		up[(i+1)%3] = -1.0f;
+		view = glm::lookAt(eye, look_at, up);
+		DrawSixTimes(projection*view*model, depth_texture_ids[i*2 + 1], vao);
+		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2 + 1]);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+	/*********************render 6 times************************/
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer);
 	glDeleteVertexArrays(1, &vao);
 	glFinish();
-	return NULL;
+	return cpu_buffer;
 }
 
 void VoxelMaker::FindBoundingBox(glm::vec3& vertices_max, glm::vec3& vertices_min,
@@ -245,4 +302,23 @@ void VoxelMaker::FindBoundingBox(glm::vec3& vertices_max, glm::vec3& vertices_mi
 		glm::vec3(size.x * cell_size,
 		size.y * cell_size,
 		size.z * cell_size);
+}
+
+void VoxelMaker::DrawSixTimes(const glm::mat4& pvm, GLuint texture_id, GLuint vao)
+{
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glUseProgram(draw_depth_program_);
+
+	GLint pvm_mat_loc = glGetUniformLocation(draw_depth_program_, "pvm");
+	glUniformMatrix4fv(pvm_mat_loc, 1, GL_FALSE, glm::value_ptr(pvm));
+
+	glBindImageTexture(0, texture_id, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+	GLint image_loc = glGetUniformLocation(draw_depth_program_, "depth_image");
+	glUniform1i(image_loc, 0);
+
+	glBindVertexArray(vao);
+	glDrawArrays(GL_TRIANGLES, 0, vertices_.size());
+
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
