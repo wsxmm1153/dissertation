@@ -34,7 +34,7 @@ VoxelMaker::VoxelMaker():
 	vertices_max_ = vertices_min_ = glm::vec3(1.0f);
 	memset(material_used_number_, 0, sizeof(bool)*256);
 
-	material_count_ = 3;
+	material_count_ = 1;
 }
 
 VoxelMaker::~VoxelMaker()
@@ -156,7 +156,7 @@ void VoxelMaker::SetSize(int size)
 		else 
 		{
 			int size_i = (int)box_size_f[i];
-			if (abs(box_size_f[i] - (float)size_i) < 10e-10)
+			if (abs(box_size_f[i] - (float)size_i) < -10e-30)
 			{
 				box_size_i[i] = size_i;
 			}
@@ -244,41 +244,73 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		size.x * size.y * 2,
 		size.y * size.z * 2 + size.x * size.y * 2
 	};
-	for(int i = 0; i < 3; i++)
+	for(int i = 2; i < 3; i++)
 	{
 		glViewport(0, 0, image_width[i], image_height[i]);
 		eye = glm::vec3(look_at.x, look_at.y, look_at.z);	
 		up = glm::vec3(0.0f, 0.0f, 0.0f);
 		//front
-		eye[(i+2)%3] = vertice_max[(i+2)%3];
-		up[(i+1)%3] = 1.0f;
+		if (i == 0)
+		{
+			eye[(i+2)%3] = vertice_max[(i+2)%3];
+			up[(i+1)%3] = 1.0f;
+		}
+		else if (i == 1)
+		{
+			eye[(i+2)%3] = vertice_min[(i+2)%3];
+			up[(i+1)%3] = -1.0f;
+		}
+		else
+		{
+			eye[(i+2)%3] = vertice_max[(i+2)%3];
+			up[(i+1)%3] = 1.0f;
+		}
 		view = glm::lookAt(eye, look_at, up);
 		glm::vec3 vertice_min_t = vertice_min - look_at;
 		glm::vec3 vertice_max_t = vertice_max - look_at;
 		projection = glm::ortho(
-			vertice_min_t[i], vertice_max_t[i],
+			vertice_min_t[i]-(10e-10f), vertice_max_t[i],
 			vertice_min_t[(i+1)%3], vertice_max_t[(i+1)%3],
-			0.0f-(10e-30f), vertice_max_t[(i+2)%3] - vertice_min_t[(i+2)%3] + (10e-30f));
+			0.0f, vertice_max_t[(i+2)%3] - vertice_min_t[(i+2)%3]);
 		DrawSixTimes(projection*view*model, depth_texture_ids[i*2], vao);
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2]);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		//back
-		eye[(i+2)%3] = vertice_min[(i+2)%3];
-		up[(i+1)%3] = -1.0f;
+		if (i == 0)
+		{
+			eye[(i+2)%3] = vertice_min[(i+2)%3];
+			up[(i+1)%3] = 1.0f;
+		}
+		else if (i == 1)
+		{
+			eye[(i+2)%3] = vertice_max[(i+2)%3];
+			up[(i+1)%3] = -1.0f;
+		}
+		else
+		{
+			eye[(i+2)%3] = vertice_min[(i+2)%3];
+			up[(i+1)%3] = 1.0f;
+		}
 		view = glm::lookAt(eye, look_at, up);
+		projection = glm::ortho(
+			vertice_min_t[(i+1)%3], vertice_max_t[(i+1)%3],
+			vertice_min_t[i], vertice_max_t[i],
+			0.0f-(10e-30f), -vertice_max_t[(i+2)%3] + vertice_min_t[(i+2)%3] + (10e-30f));
 		DrawSixTimes(projection*view*model, depth_texture_ids[i*2 + 1], vao);
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2 + 1]);
-		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, 
+			cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	/*********************render 6 times************************/
-	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer);
+	
 	glDeleteVertexArrays(1, &vao);
 	glDeleteTextures(6, depth_texture_ids);
 	glFinish();
 	return cpu_buffer;
+	//return NULL;
 }
 
 void VoxelMaker::FindBoundingBox(glm::vec3& vertices_max, glm::vec3& vertices_min,
@@ -316,6 +348,7 @@ void VoxelMaker::DrawSixTimes(const glm::mat4& pvm, GLuint texture_id, GLuint va
 
 	glBindVertexArray(0);
 	glUseProgram(0);
+	//glBindImageTexture(0, 0 , 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 }
 
 void VoxelMaker::VoxelizationLogical()
@@ -328,10 +361,10 @@ void VoxelMaker::VoxelizationLogical()
 	int iterate_count = 0;
 	while(num_unsure > 0)
 	{
-		num_unsure = FillVoxels(start_min, end_max, num_unsure);
+		num_unsure = FillVoxels(start_min, end_max);
 		//FindUnsureBox(start_min, end_max);
 		iterate_count++;
-		if (iterate_count > 100)	break;
+		if (iterate_count > 1)	break;
 	}
 }
 
@@ -355,22 +388,27 @@ const glm::ivec3 Backward_Sum[6] =
 	glm::ivec3(0, 1, 0)
 };
 
-int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max, int unsure_num)
+int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 {
 	float* depth_ptr = DrawDepth(start_min, end_max);
 	glm::ivec3 size = end_max - start_min + glm::ivec3(1,1,1);
-	glm::ivec3 current_surface_loc;
+	glm::ivec3 current_surface_loc, start_point;
 	DepthDirection direction;
 	
-	for (int i = 0; i < size.x*size.y*size.z; i++)
+	int size_i = size.x*size.y*2 + size.x*size.z*2+size.y*size.z*2;
+	for (int i = 0; i < size_i; i++)
 	{
-		bool is_inside = LocationDepth(direction, current_surface_loc, i, depth_ptr[i], start_min, end_max);
-		glm::ivec3 start_point = current_surface_loc + Backward_Sum[direction] * current_surface_loc[direction];
+		bool is_inside = LocationDepth(direction, current_surface_loc, 
+			start_point, i, depth_ptr[i], start_min, end_max);
+		//glm::ivec3 start_point = current_surface_loc + Backward_Sum[direction] * current_surface_loc[direction];
 		if (is_inside)
 		{
 			FillInsideSurface(current_surface_loc);
-			unsigned int material = FindMaterial(start_point, current_surface_loc + Backward_Sum[direction], direction);
-			FillWithMaterial(material, start_point, current_surface_loc + Backward_Sum[direction], direction);
+			if (start_point != current_surface_loc)
+			{
+				unsigned int material = FindMaterial(start_point, current_surface_loc + Backward_Sum[direction], direction);
+				FillWithMaterial(material, start_point, current_surface_loc + Backward_Sum[direction], direction);
+			}
 		}
 		else
 		{
@@ -380,9 +418,12 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max, int unsur
 		if (material_count_ > 254)	break;
 	}
 	//
-	glm::ivec3 temp = start_min;
-	start_min = end_max;
-	end_max = temp;
+	//glm::ivec3 temp = start_min;
+	//start_min = end_max;
+	//end_max = temp;
+	int max_int = 1028;
+	start_min = glm::ivec3(max_int, max_int, max_int);
+	end_max = glm::ivec3(-max_int,-max_int, -max_int);
 
 	for (int i = 0; i < width_*depth_*height_; i++)
 	{
@@ -398,60 +439,69 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max, int unsur
 			if (current_index.y < start_min.y)	start_min.y = current_index.y;
 			if (current_index.z < start_min.z)	start_min.z = current_index.z;
 			if (current_index.x > end_max.x)	end_max.x = current_index.x;
-			if (current_index.y > end_max.y)	end_max.x = current_index.y;
-			if (current_index.x > end_max.z)	end_max.x = current_index.z;
+			if (current_index.y > end_max.y)	end_max.y = current_index.y;
+			if (current_index.x > end_max.z)	end_max.z = current_index.z;
 		}
 	}
 	return material_used_number_[NOT_SURE];
 }
 
 //carefully coded
-bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location, int depth_index, float depth_value, glm::ivec3 start_min, glm::ivec3 end_max)
+bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
+	glm::ivec3& start_point, int depth_index, float depth_value, glm::ivec3 start_min, glm::ivec3 end_max)
 {
 	glm::ivec3 current_size = end_max - start_min + glm::ivec3(1, 1, 1);
 	assert(current_size.x > 0 && current_size.y > 0 && current_size.z > 0);
 
 	const int texture_sizes[6] = {
-		current_size.x * current_size.y,
-		current_size.x * current_size.y,
-		current_size.y * current_size.z,
-		current_size.y * current_size.z,
-		current_size.z * current_size.x,
-		current_size.z * current_size.x
+		current_size.x * current_size.y,//2
+		current_size.x * current_size.y,//2
+		current_size.y * current_size.z,//2
+		current_size.y * current_size.z,//2
+		current_size.z * current_size.x,//4
+		current_size.z * current_size.x//4
 	};
 
 	int accumulate_size = texture_sizes[XOY_MAX_Z_UP_Y];
 	direction = XOY_MAX_Z_UP_Y;
 	
-	while(depth_index > accumulate_size)
+	while(depth_index >= accumulate_size)
 	{
 		assert(direction < 6);
-		accumulate_size += texture_sizes[direction];
 		int i = direction+1;
+		accumulate_size += texture_sizes[i];
 		direction = static_cast<VoxelMaker::DepthDirection>(i);
 	}
 	glm::ivec3 current_flat;
 	current_flat[(direction/2 + 2) % 3] = 0;
 	current_flat[direction/2] = depth_index%current_size[direction/2];
-	current_flat[(direction/2 + 1) % 3] = depth_index/current_size[direction/2];
-	glm::ivec3 frag_step = glm::ivec3(1, 1, 1) - Forward_Sum[direction];
-	glm::ivec3 start_point;
-	if (direction%2)
-		start_point = start_min + frag_step * current_flat; 
+	current_flat[(direction/2 + 1) % 3] = (depth_index - (accumulate_size - texture_sizes[direction]))/current_size[direction/2];
+	//glm::ivec3 frag_step = glm::ivec3(1, 1, 1) - Forward_Sum[direction];
+	//glm::ivec3 frag_step = glm::ivec3(1, 1, 1);
+	//frag_step[(direction/2 + 2) % 3] = 0;
+	//glm::ivec3 start_point;
+	if (direction%2 == 0)
+	{
+		start_point = current_flat + start_min;
+		//start_point[(direction/2 + 2) % 3] = start_min[(direction/2 + 2) % 3];
+	}
 	else
 	{
-		current_flat[direction/2] = current_size[direction/2] - depth_index%current_size[direction/2];
-		current_flat[(direction/2 + 1) % 3] = current_size[(direction/2 + 1) % 3] - depth_index/current_size[direction/2];
-		start_point = end_max + frag_step * current_flat;
+		//current_flat[direction/2] = current_size[direction/2] - depth_index%current_size[direction/2];
+		//current_flat[(direction/2 + 1) % 3] = current_size[(direction/2 + 1) % 3] - depth_index/current_size[direction/2];
+		start_point = current_flat + start_min;
+		start_point[(direction/2 + 2) % 3] = end_max[(direction/2 + 2) % 3];
+		start_point[(direction/2) % 3] = end_max[(direction/2) % 3] - start_point[(direction/2) % 3];
 	}
 
 	if (depth_value < 0.0f)
 	{
-		location = start_point + Forward_Sum[direction] * current_size[(direction/2 + 2)%3] - glm::ivec3(1,1,1);
+		//location = start_point + Forward_Sum[direction] * current_size[(direction/2 + 2)%3] - glm::ivec3(1,1,1);
+		location = start_point + Forward_Sum[direction] * (current_size[(direction/2 + 2)%3]-1);
 		return false;
 	}
-	depth_value /= cell_size_;
-	int depth_count = (int)depth_value;
+	depth_value *= (end_max[(direction/2 + 2) % 3]-start_min[(direction/2 + 2) % 3]);
+	int depth_count = (int)(depth_value) ;
 	if (depth_value > (float)depth_count)
 		depth_count++;
 	location = start_point + Forward_Sum[direction] * (depth_count-1);
@@ -462,21 +512,26 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location, 
 unsigned char VoxelMaker::FindMaterial(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction)
 {
 	int depth_axis = (direction/2 + 2) % 3;
-	start_point[depth_axis]--;
-	end_point[depth_axis]++;
-	assert(start_point[depth_axis] < width_);
-	if (start_point[depth_axis] < 0 || end_point[depth_axis] < 0 || end_point[depth_axis] >= width_)
+	//start_point[depth_axis]--;
+	glm::ivec3 start_p = start_point + Backward_Sum[direction];
+	//end_point[depth_axis]++;
+	glm::ivec3 end_p = end_point + Forward_Sum[direction];
+	//assert(start_point[depth_axis] < width_);
+	glm::ivec3 global_size = glm::ivec3(width_, height_, depth_);
+	if (start_p[depth_axis] < 0 ||start_p[depth_axis] >= global_size[depth_axis] ||
+		end_p[depth_axis] < 0 || end_p[depth_axis] >= global_size[depth_axis])
 		return OUTSIDE;
-	int current_axis_point = start_point[depth_axis];
-	glm::ivec3 point_index = start_point;
+	//int current_axis_point = start_point[depth_axis];
+	glm::ivec3 point_index = start_p;
 	unsigned char current_state = NOT_SURE;
-	while (current_axis_point <= end_point[depth_axis])
+	while (point_index != end_p)
 	{
 		int current_index = point_index.x +
 			point_index.y * height_
 			+ point_index.z * width_ * height_;
-		current_axis_point++;
-		point_index[depth_axis] = current_axis_point;
+		//current_axis_point++;
+		point_index += Forward_Sum[direction];
+		//point_index[depth_axis] = current_axis_point;
 		if (data_buffer_loc_[current_index] != NOT_SURE||data_buffer_loc_[current_index] != INSIDE_SURFACE)
 		{
 			current_state = data_buffer_loc_[current_index];
@@ -487,6 +542,22 @@ unsigned char VoxelMaker::FindMaterial(glm::ivec3 start_point, glm::ivec3 end_po
 			return OUTSIDE;
 		}
 	}
+
+	//in the end
+	int current_index = point_index.x +
+		point_index.y * height_
+		+ point_index.z * width_ * height_;
+	if (data_buffer_loc_[current_index] != NOT_SURE||data_buffer_loc_[current_index] != INSIDE_SURFACE)
+	{
+		current_state = data_buffer_loc_[current_index];
+	}
+	if (data_buffer_loc_[current_index] == OUTSIDE)
+	{
+		current_state = OUTSIDE;
+		return OUTSIDE;
+	}
+	//
+
 	if (current_state == NOT_SURE)
 	{
 		assert(material_count_ < 256);
@@ -507,25 +578,27 @@ void VoxelMaker::FillWithMaterial(unsigned char material,glm::ivec3 start_point,
 	int depth_axis = (direction/2 + 2) % 3;
 	assert(start_point[depth_axis] < width_);
 
-	int current_axis_point = start_point[depth_axis];
+	//int current_axis_point = start_point[depth_axis];
 	glm::ivec3 point_index = start_point;
 	
-	while (current_axis_point <= end_point[depth_axis])
+	while (point_index != end_point)
 	{
 		int current_index = point_index.x +
 			point_index.y * height_
 			+ point_index.z * width_ * height_;
-		current_axis_point++;
-
+		//current_axis_point++;
+		point_index += Forward_Sum[direction];
 		unsigned char state_before = data_buffer_loc_[current_index];
-		assert(state_before != INSIDE_SURFACE);
+		//assert(state_before != INSIDE_SURFACE);
 		switch (state_before)
 		{
 		case NOT_SURE:
 			FillVoxelWith(material, current_index);
 			break;
 		case OUTSIDE:
-			assert(material == OUTSIDE);
+			FillWithOutSide(start_point, end_point, direction);
+			break;
+		case INSIDE_SURFACE:
 			break;
 		default:
 			if (state_before != material)
@@ -542,7 +615,117 @@ void VoxelMaker::FillWithMaterial(unsigned char material,glm::ivec3 start_point,
 			break;
 		}
 	}
+	//
+	int current_index = point_index.x +
+		point_index.y * height_
+		+ point_index.z * width_ * height_;
+	//current_axis_point++;
+	//point_index += Forward_Sum[direction];
+	unsigned char state_before = data_buffer_loc_[current_index];
+	//assert(state_before != INSIDE_SURFACE);
+	switch (state_before)
+	{
+	case NOT_SURE:
+		FillVoxelWith(material, current_index);
+		break;
+	case OUTSIDE:
+		//assert(material == OUTSIDE);
+		FillWithOutSide(start_point, end_point, direction);
+		break;
+	case INSIDE_SURFACE:
+		break;
+	default:
+		if (state_before != material)
+		{
+			for (int i = 0; i < width_*height_*depth_; i++)
+			{
+				if (data_buffer_loc_[i] == state_before)
+				{
+					FillVoxelWith(material, i);
+					if (material_used_number_[state_before] == 0)	break;
+				}
+			}
+		}
+		break;
+	}
 }
+
+void VoxelMaker::FillWithOutSide(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction)
+{
+	int depth_axis = (direction/2 + 2) % 3;
+	assert(start_point[depth_axis] < width_);
+
+	//int current_axis_point = start_point[depth_axis];
+	glm::ivec3 point_index = start_point;
+
+	while (point_index != end_point)
+	{
+		int current_index = point_index.x +
+			point_index.y * height_
+			+ point_index.z * width_ * height_;
+		//current_axis_point++;
+		point_index += Forward_Sum[direction];
+		unsigned char state_before = data_buffer_loc_[current_index];
+		//assert(state_before != INSIDE_SURFACE);
+		switch (state_before)
+		{
+		case NOT_SURE:
+			FillVoxelWith(OUTSIDE, current_index);
+			break;
+		case OUTSIDE:
+			break;
+		case INSIDE_SURFACE:
+			break;
+		default:
+			if (state_before != OUTSIDE)
+			{
+				for (int i = 0; i < width_*height_*depth_; i++)
+				{
+					if (data_buffer_loc_[i] == state_before)
+					{
+						FillVoxelWith(OUTSIDE, i);
+						if (material_used_number_[state_before] == 0)	break;
+					}
+				}
+			}
+			break;
+		}
+	}
+	//
+	int current_index = point_index.x +
+		point_index.y * height_
+		+ point_index.z * width_ * height_;
+	//current_axis_point++;
+	//point_index += Forward_Sum[direction];
+	unsigned char state_before = data_buffer_loc_[current_index];
+	//assert(state_before != INSIDE_SURFACE);
+	switch (state_before)
+	{
+	case NOT_SURE:
+		FillVoxelWith(OUTSIDE, current_index);
+		break;
+	case OUTSIDE:
+		//assert(material == OUTSIDE);
+		//FillWithOutSide(start_point, end_point, direction);
+		break;
+	case INSIDE_SURFACE:
+		break;
+	default:
+		if (state_before != OUTSIDE)
+		{
+			for (int i = 0; i < width_*height_*depth_; i++)
+			{
+				if (data_buffer_loc_[i] == state_before)
+				{
+					FillVoxelWith(OUTSIDE, i);
+					if (material_used_number_[state_before] == 0)	break;
+				}
+			}
+		}
+		break;
+	}
+}
+
 
 void VoxelMaker::FillInsideSurface(glm::ivec3 point_index)
 {
