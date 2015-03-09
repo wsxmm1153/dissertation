@@ -102,34 +102,27 @@ void main(void)\n
 const char *drawDepthVertex = STRINGIFY(
 #version 430\n
 	in vec3 vVertex;\n
-	uniform mat4 pvm0;\n
-	uniform mat4 pvm1;\n
-	uniform mat4 pvm2;\n
-	uniform mat4 pvm3;\n
-	uniform mat4 pvm4;\n
-	uniform mat4 pvm5;\n
-	smooth out vec3 z_value_front;\n
-	smooth out vec3 z_value_back;\n
+	uniform mat4 pvm;\n
+	smooth out float z_value;\n
 	void main(void)\n
 {\n
-gl_Position = pvm0 * vec4(vVertex, 1.0);\n
-vec4 v = vec4(vVertex, 1.0);\n
-z_value_front = vec3((pvm0*v).z, (pvm2*v).z, (pvm4*v).z);\n
-z_value_back = vec3((pvm1*v).z, (pvm3*v).z, (pvm5*v).z);\n
+gl_Position = pvm * vec4(vVertex, 1.0);\n
+z_value = gl_Position.z;
 }\n
 );
 
 const char *drawDepthFragment = STRINGIFY(
 #version 430\n
-	smooth in vec3 z_value_front;\n
-	smooth in vec3 z_value_back;\n
+	smooth in float z_value;\n
 	out vec4 FragColor;\n
+	layout (r32f) uniform image2D depth_image;
 	void main(void)\n
 {\n
 //p*v*m将z变换到了（-1.0f,1.0f）\n
-FragColor = vec4(0.0, 0.0, (z_value_front.x+1.0f)/2.0f, 1.0f);\n
+FragColor = vec4(0.0, 0.0, (z_value+1.0f)/2.0f, 1.0f);\n
 //test
 //FragColor = vec4(0.0f, 0.0f, (zValue-0.9f)*5.0f, 1.0f);\n
+imageStore(depth_image, ivec2(gl_FragCoord.xy), vec4(FragColor.z, 0.0, 0.0, 0.0));\n
 }\n
 );
 

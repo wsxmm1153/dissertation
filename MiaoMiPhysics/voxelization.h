@@ -67,10 +67,10 @@ public:
 	void GetSize(int& width, int& height, int& depth) {width = width_;height = height_; depth = depth_;}
 
 	//暂定为public测试
-	float* DrawDepth(
-		glm::ivec3 start_min,
-		glm::ivec3 end_max
-		);
+	//float* DrawDepth(
+	//	glm::ivec3 start_min,
+	//	glm::ivec3 end_max
+	//	);
 protected:
 	//data
 	int width_;
@@ -86,10 +86,12 @@ protected:
 	void SetSize(int size);
 	void CreatVoxel();
 	//将某正交投影深度图保存到内存，返回内存起始地址
-	//float* DrawDepth(
-	//	glm::ivec3 start_min,
-	//	glm::ivec3 size
-	//	);
+	float* DrawDepth(
+		glm::ivec3 start_min,
+		glm::ivec3 size
+		);
+
+	void DrawSixTimes(const glm::mat4& pvm, GLuint texture_id, GLuint vao);
 
 	void FindMiddle(glm::vec3 current_max, glm::vec3 current_min, glm::vec3& middle_position);
 
