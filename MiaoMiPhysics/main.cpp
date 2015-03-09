@@ -88,7 +88,7 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 1024);
+	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 75);
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
@@ -98,8 +98,6 @@ void init(void)
 
 void display()
 {
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
 	/***************test renderer*************************/
 	//cameraDisplay();
 	//glm::mat4 mv = View * Model;
@@ -108,13 +106,13 @@ void display()
 	/***************test renderer*************************/
 
 	/***************test voxel maker*************************/
-	int _x,_y,_z;
-	voxel_maker_ptr_s->GetSize(_x, _y, _z);
-	voxel_maker_ptr_s->DrawDepth(glm::ivec3(0, 0, 0), glm::ivec3(_x, _y, _z));
+	//int _x,_y,_z;
+	//voxel_maker_ptr_s->GetSize(_x, _y, _z);
+	//voxel_maker_ptr_s->DrawDepth(glm::ivec3(0, 0, 0), glm::ivec3(_x, _y, _z));
 	/***************test voxel maker*************************/
 
-	glutPostRedisplay();
-	glutSwapBuffers();
+	//glutPostRedisplay();
+	//glutSwapBuffers();
 }
 
 
@@ -128,7 +126,7 @@ int main(int argc, char** argv)
 	init();
 
 	glutDisplayFunc(display);
-	cameraLoop();
+	//cameraLoop();
 
 	glutMainLoop();
 
