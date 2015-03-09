@@ -106,7 +106,7 @@ void display()
 	/***************test renderer*************************/
 
 	/***************test voxel maker*************************/
-	int _x,_y,_z;
+	//int _x,_y,_z;
 	//voxel_maker_ptr_s->GetSize(_x, _y, _z);
 	//voxel_maker_ptr_s->DrawDepth(glm::ivec3(0, 0, 0), glm::ivec3(_x, _y, _z));
 	/***************test voxel maker*************************/
