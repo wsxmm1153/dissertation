@@ -234,6 +234,7 @@ void VolumeRenderer::_draw_back_face_tex()
 	glFrontFace(GL_CW);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
+	glViewport(0, 0, _screen_width, _screen_height);
 
 	glUseProgram(_back_program);
 

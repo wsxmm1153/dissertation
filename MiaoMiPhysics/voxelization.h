@@ -92,7 +92,7 @@ protected:
 		glm::ivec3 end_max
 		);
 
-	void DrawSixTimes(const glm::mat4& pvm, GLuint texture_id, GLuint vao);
+	void DrawSixTimes(const glm::mat4& pvm, GLuint framebuffer_id, GLuint vao);
 
 	void FindMiddle(glm::vec3 current_max, glm::vec3 current_min, glm::vec3& middle_position);
 
