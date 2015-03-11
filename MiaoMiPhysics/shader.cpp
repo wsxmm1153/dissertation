@@ -106,23 +106,24 @@ const char *drawDepthVertex = STRINGIFY(
 	smooth out float z_value;\n
 	void main(void)\n
 {\n
-gl_Position = pvm * vec4(vVertex, 1.0);\n
-z_value = gl_Position.z;
+vec4 pp = pvm * vec4(vVertex, 1.0);\n
+z_value = pp.z;
+gl_Position = pp;\n
 }\n
 );
 
 const char *drawDepthFragment = STRINGIFY(
 #version 430\n
 	smooth in float z_value;\n
-	out vec4 FragColor;\n
+	//out vec4 FragColor;\n
 	layout (r32f) uniform image2D depth_image;
 	void main(void)\n
 {\n
 //p*v*m将z变换到了（-1.0f,1.0f）\n
-FragColor = vec4(0.0, 0.0, (z_value+1.0f)/2.0f, 1.0f);\n
+vec4 FragColor = vec4(0.0, 0.0, (z_value+1.0f+10e-10f)/2.0f, 1.0f);\n
 //test
 //FragColor = vec4(0.0f, 0.0f, (zValue-0.9f)*5.0f, 1.0f);\n
-imageStore(depth_image, ivec2(gl_FragCoord.xy), vec4(FragColor.z, 0.0, 0.0, 0.0));\n
+imageStore(depth_image, ivec2(gl_FragCoord.xy), vec4(FragColor.z, FragColor.z, FragColor.z, FragColor.z));\n
 }\n
 );
 
