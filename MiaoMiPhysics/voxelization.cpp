@@ -156,14 +156,14 @@ void VoxelMaker::SetSize(int size)
 		else 
 		{
 			int size_i = (int)box_size_f[i];
-			if (abs(box_size_f[i] - (float)size_i) < -10e-30)
+			if (abs(box_size_f[i] - (float)size_i) < -10e-30f)
 			{
 				box_size_i[i] = size_i;
 			}
 			else
 			{
 				box_size_i[i] = size_i + 1;
-				vertices_max_[i] = (float)box_size_i[i] / scale_f + vertices_min_[i]; 
+				vertices_max_[i] = ((float)box_size_i[i]) / scale_f + vertices_min_[i]; 
 			}
 		}
 	}
@@ -196,8 +196,8 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 
 	/*********************gpu setup*****************************/
 	glEnable(GL_DEPTH_TEST);
-	//glDisable(GL_CULL_FACE);
-	//glDepthRange(0.0f, 1.0f);
+	glDisable(GL_CULL_FACE);
+	glDepthRange(0.0f, 1.0f);
 
 	//vertex vao
 	GLuint vao;
@@ -246,7 +246,7 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 	/*********************gpu setup*****************************/
 
 	/*********************matrix initial************************/
-	glm::mat4 eye_model = glm::mat4(1.0f), view, projection;
+	glm::mat4 eye_model, view, projection;
 	glm::vec3 eye, up, look_at;
 	glm::vec3 vertice_max, vertice_min;
 	FindBoundingBox(vertice_max, vertice_min, start_min, end_max);
@@ -260,90 +260,96 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		size.x * size.y * 2,
 		size.y * size.z * 2 + size.x * size.y * 2
 	};
-	for(int i = 0; i < 2; i++)
+	for(int i = 2; i < 3; i++)
 	{
+		eye_model = glm::mat4(1.0f);
+		glm::mat4 model = glm::mat4(1.0f);
 		glViewport(0, 0, image_width[i], image_height[i]);
-		eye = glm::vec3(look_at.x, look_at.y, look_at.z);	
 		up = glm::vec3(0.0f, 0.0f, 0.0f);
 		//front
 		if (i == 0)
 		{
-			//eye[(i+2)%3] = vertice_max[(i+2)%3];
 			up[(i+1)%3] = 1.0f;
 		}
 		else if (i == 1)
 		{
-			//eye[(i+2)%3] = vertice_min[(i+2)%3];
 			up[(i+1)%3] = 1.0f;
 		}
 		else
 		{
-			//eye[(i+2)%3] = vertice_max[(i+2)%3];
 			up[(i+1)%3] = -1.0f;
 		}
-
-		//eye_model = glm::rotate(eye_model, 180.0f, look_at);
+		//把模型移动到原点
+		model = glm::translate(model, -look_at);
+		//把眼睛移动到大端
+		eye = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 eye_translate_v = glm::vec3(0.0f, 0.0f, 0.0f);
-		eye_translate_v[(i+2)%3] = -size[(i+2)%3] * cell_size_ / 2.0f;
+		eye_translate_v[(i+2)%3] = size[(i+2)%3] * cell_size_ / 2.0f;
 		eye_model = glm::translate(eye_model, eye_translate_v);
 		glm::vec4 eye_v4 = eye_model * glm::vec4(eye, 1.0f);
 		eye = glm::vec3(eye_v4.x, eye_v4.y, eye_v4.z);
-		//
-		view = glm::lookAt(eye, look_at, up);
-		//glClearDepth(0.0f);
+		//view矩阵
+		view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
+
+		glClearDepth(-10e30f);
 		glDepthFunc(GL_GREATER);
 
-		glm::vec3 vertice_min_t = vertice_min - eye;
-		glm::vec3 vertice_max_t = vertice_max - eye;
+		//glm::vec3 vertice_min_t = -(glm::vec3)size * (float)cell_size_/2.0f;
+		//glm::vec3 vertice_max_t = (glm::vec3)size * (float)cell_size_/2.0f;
+		glm::vec3 vertice_min_t = glm::vec3(
+			-(float)size.x * cell_size_ / 2.0f/* - 10e-1f*/,
+			-(float)size.y * cell_size_ / 2.0f/* - 10e-1f*/,
+			-(float)size.z * cell_size_ / 2.0f/* - 10e-1f*/
+			);
+		glm::vec3 vertice_max_t = glm::vec3(
+			(float)size.x * cell_size_ / 2.0f/* + 10e-1f*/,
+			(float)size.y * cell_size_ / 2.0f/* + 10e-1f*/,
+			(float)size.z * cell_size_ / 2.0f/* + 10e-1f*/
+			);
 		
 		projection = glm::ortho(
-			vertice_min_t[i], vertice_max_t[i],
+			vertice_min_t[i]/*-(cell_size_ + 0.15f)*/, vertice_max_t[i],
 			vertice_min_t[(i+1)%3], vertice_max_t[(i+1)%3],
-			vertice_min_t[(i+2)%3] , vertice_max_t[(i+2)%3]);
+			0.0f , vertice_max_t[(i+2)%3]-vertice_min_t[(i+2)%3]);
 
-		DrawSixTimes(projection*view, frame_buffers[i*2], vao);
+		DrawSixTimes(projection*view*model, frame_buffers[i*2], vao);
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2]);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
+		for (int j = 0; j < image_width[i]*image_height[i]; j++)
+		{
+			float _depth = cpu_buffer[j + cpu_buffer_offset[i]];
+			if (_depth > 0.0f)
+			{
+				printf("1");
+			}
+			else	printf("0");
+			if ((j+1)%image_width[i] == 0)
+			{
+				printf("\n");
+			}
+		}
+
 		//back
-		if (i == 0)
-		{
-			//eye[(i+2)%3] = vertice_min[(i+2)%3];
-			up[(i+1)%3] = 1.0f;
-		}
-		else if (i == 1)
-		{
-			//eye[(i+2)%3] = vertice_max[(i+2)%3];
-			up[(i+1)%3] = 1.0f;
-		}
-		else
-		{
-			//eye[(i+2)%3] = vertice_max[(i+2)%3];
-			up[(i+1)%3] = 1.0f;
-		}
-		//eye_model = glm::mat4(1.0f);
-		//eye_model = glm::rotate(eye_model, 180.0f, up);
-		//eye_translate_v = glm::vec3(0.0f, 0.0f, 0.0f);
-		//eye_translate_v[(i+2)%3] = size[(i+2)%3] * cell_size_ / 2.0f;
-		//eye_model = glm::translate(eye_model, eye_translate_v);
-		//eye = look_at;
-		//eye_v4 = eye_model * glm::vec4(eye, 1.0f);
-		//eye = glm::vec3(eye_v4.x, eye_v4.y, eye_v4.z);
-		////
-		//view = glm::lookAt(eye, look_at, up);
-		//glClearDepth(0.0f);
+		//把眼睛移动到小端
+		eye = glm::vec3(0.0f, 0.0f, 0.0f);
+		eye_model = glm::mat4(1.0f);
+		eye_translate_v = glm::vec3(0.0f, 0.0f, 0.0f);
+		eye_translate_v[(i+2)%3] = -size[(i+2)%3] * cell_size_ / 2.0f;
+		eye_model = glm::translate(eye_model, eye_translate_v);
+		eye_v4 = eye_model * glm::vec4(eye, 1.0f);
+		eye = glm::vec3(eye_v4.x, eye_v4.y, eye_v4.z);
+		////view矩阵
+		view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
+		glClearDepth(-10e30f);
 		glDepthFunc(GL_GREATER);
-
-		//vertice_min_t = vertice_min - eye;
-		//vertice_max_t = vertice_max - eye;
-		//projection = glm::rotate(projection, 180.0f, up);
-
+		//垂直于up方向应镜像
 		projection = glm::ortho(
-			vertice_max_t[i], vertice_min_t[i],
-			vertice_max_t[(i+1)%3], vertice_min_t[(i+1)%3],
-			vertice_max_t[(i+2)%3] , vertice_min_t[(i+2)%3]);
-		DrawSixTimes(projection*view, frame_buffers[i*2 + 1], vao);
+			vertice_min_t[i], vertice_max_t[i],
+			-vertice_min_t[(i+1)%3], -vertice_max_t[(i+1)%3],
+			0.0f , vertice_max_t[(i+2)%3]-vertice_min_t[(i+2)%3]);
+		//DrawSixTimes(projection*view*model, frame_buffers[i*2 + 1], vao);
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2 + 1]);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, 
 			cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
@@ -374,11 +380,11 @@ void VoxelMaker::FindBoundingBox(glm::vec3& vertices_max, glm::vec3& vertices_mi
 	vertices_min += glm::vec3(start_min.x * cell_size,
 		start_min.y * cell_size,
 		start_min.z * cell_size);
-
+	
 	vertices_max = vertices_min + 
-		glm::vec3(size.x * cell_size,
-		size.y * cell_size,
-		size.z * cell_size);
+		glm::vec3((size.x + 0) * cell_size,
+		(size.y + 0) * cell_size,
+		(size.z + 0) * cell_size);
 }
 
 void VoxelMaker::DrawSixTimes(const glm::mat4& pvm, GLuint framebuffer_id, GLuint vao)
@@ -461,7 +467,7 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 			start_point, i, depth_ptr[i], start_min, end_max);
 		//glm::ivec3 start_point = current_surface_loc + Backward_Sum[direction] * current_surface_loc[direction];
 		if (is_inside)
-		{
+		{//命中条件：i==3648
 			FillInsideSurface(current_surface_loc);
 			if (start_point != current_surface_loc)
 			{
@@ -499,7 +505,7 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 			if (current_index.z < start_min.z)	start_min.z = current_index.z;
 			if (current_index.x > end_max.x)	end_max.x = current_index.x;
 			if (current_index.y > end_max.y)	end_max.y = current_index.y;
-			if (current_index.x > end_max.z)	end_max.z = current_index.z;
+			if (current_index.z > end_max.z)	end_max.z = current_index.z;
 		}
 	}
 	return material_used_number_[NOT_SURE];
@@ -550,7 +556,7 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 		//start_point[(direction/2) % 3] = end_max[(direction/2) % 3] - start_point[(direction/2) % 3];
 	}
 
-	if (depth_value < 10e-10f)
+	if (depth_value < 0.0f)
 	{
 		//location = start_point + Forward_Sum[direction] * current_size[(direction/2 + 2)%3] - glm::ivec3(1,1,1);
 		location = start_point + Forward_Sum[direction] * (current_size[(direction/2 + 2)%3]-1);
@@ -559,9 +565,10 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 	//depth_value *= (end_max[(direction/2 + 2) % 3]-start_min[(direction/2 + 2) % 3]);
 	depth_value *= current_size[(direction/2 + 2) % 3];
 	int depth_count = (int)(depth_value) ;
+	
 	if (depth_value > (float)depth_count)
 		depth_count++;
-	location = start_point + Forward_Sum[direction] * (depth_count-1);
+	location = start_point + Forward_Sum[direction] * (depth_count/*-1*/);
 
 	return true;
 }

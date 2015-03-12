@@ -68,7 +68,7 @@ protected:
 		YOZ_MAX_X_UP_Z =2,
 		YOZ_MIN_X_DOWN_Z = 3,
 		ZOX_MAX_Y_UP_X = 4,
-		ZOX_MIN_Y_DOWN_x = 5
+		ZOX_MIN_Y_DOWN_X = 5
 	};
 
 	//data

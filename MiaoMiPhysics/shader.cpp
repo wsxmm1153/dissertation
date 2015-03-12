@@ -121,7 +121,7 @@ const char *drawDepthFragment = STRINGIFY(
 {\n
 //p*v*m将z变换到了（-1.0f,1.0f）\n
 //if(z_value < 0.0f)	discard;
-FragColor = vec4((z_value+1.0f+10e-10f)/2.0f
+FragColor = vec4((z_value+1.0f+10e-30f)/2.0f/*gl_FragCoord.z*/
 , (z_value+1.0f+10e-10f)/2.0f, (z_value+1.0f+10e-10f)/2.0f, 1.0f);\n
 //test
 //FragColor = vec4(0.0f, 0.0f, (zValue-0.9f)*5.0f, 1.0f);\n
