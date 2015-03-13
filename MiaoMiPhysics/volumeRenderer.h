@@ -12,8 +12,10 @@ public:
 	{
 		RayCasting
 	};
-	static void drawPhysicsWorld(GLuint texture, glm::mat4* mv, glm::mat4* p);
-	static VolumeRenderer* createVolumeRenderer(GLuint texture, glm::mat4* mv, glm::mat4* p, Modes mode);
+	static void drawPhysicsWorld(GLuint texture, glm::mat4* mv, glm::mat4* p,
+		GLuint w, GLuint h, GLuint d);
+	static VolumeRenderer* createVolumeRenderer(GLuint texture, glm::mat4* mv, glm::mat4* p, Modes mode,
+		GLuint w, GLuint h, GLuint d);
 	static VolumeRenderer* createVolumeRenderer();
 	static VolumeRenderer* getInstance();
 
@@ -38,12 +40,17 @@ private:
 	GLuint _box_vao;
 	GLuint _back_vao;
 	GLuint _fbo;
+	GLuint depth_render_buffer_;
+	GLuint width_;
+	GLuint height_;
+	GLuint depth_;
 	static VolumeRenderer* _self;
 	//about transform function..
 	void _init_programs();
 	void _init_buffers();
 	void _draw_back_face_tex();
 	void _draw_volume();
+	
 	VolumeRenderer();
 };
 

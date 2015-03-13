@@ -39,13 +39,17 @@ VolumeRenderer::~VolumeRenderer()
 	{
 		glDeleteVertexArrays(1, &_box_vao);
 	}
+	if (depth_render_buffer_)
+	{
+		glDeleteRenderbuffers(1, &depth_render_buffer_);
+	}
 	if (_self)
 	{
 		delete _self;
 	}
 }
 
-void VolumeRenderer::drawPhysicsWorld(GLuint texture, glm::mat4* mv, glm::mat4* p)
+void VolumeRenderer::drawPhysicsWorld(GLuint texture, glm::mat4* mv, glm::mat4* p, GLuint w, GLuint h, GLuint d)
 {
 	//auto renderer = createVolumeRenderer(texture, mv, p, RayCasting);
 	if (_self)
@@ -54,21 +58,24 @@ void VolumeRenderer::drawPhysicsWorld(GLuint texture, glm::mat4* mv, glm::mat4* 
 	}
 	else
 	{
-		_self = createVolumeRenderer(texture, mv, p, RayCasting);
+		_self = createVolumeRenderer(texture, mv, p, RayCasting, w, h, d);
 		_self->draw();
 	}
 }
 //This is a single instance.Use it as physics test.
 //Given a 3D texture,use this function to draw it out in the middle of the screen.
 
-VolumeRenderer* VolumeRenderer::createVolumeRenderer(GLuint texture, glm::mat4 *mv, glm::mat4 *p, Modes mode)
+VolumeRenderer* VolumeRenderer::createVolumeRenderer(GLuint texture, glm::mat4 *mv, glm::mat4 *p, Modes mode,
+	GLuint w, GLuint h, GLuint d)
 {
 	auto renderer = createVolumeRenderer();
 	renderer->_texture_3d = texture;
 	renderer->_mv_matrix = mv;
 	renderer->_project_matrix = p;
 	renderer->_mode = mode;
-
+	renderer->width_ = w;
+	renderer->height_ = h;
+	renderer->depth_ = d;
 	return renderer;
 }
 
@@ -118,15 +125,26 @@ void VolumeRenderer::_init_buffers()
 	{
 		return;
 	}
-	const GLfloat vertice[] ={
-		-1.0f, 1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
-		1.0f, 1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
-		1.0f, 1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX,
-		-1.0f, 1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX,
-		-1.0f, -1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
-		1.0f, -1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
-		1.0f, -1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX,
-		-1.0f, -1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX
+	//GLfloat vertice[] ={
+	//	-1.0f, 1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
+	//	1.0f, 1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
+	//	1.0f, 1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX,
+	//	-1.0f, 1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX,
+	//	-1.0f, -1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
+	//	1.0f, -1.0f*YMAX/XMAX, -1.0f*ZMAX/XMAX,
+	//	1.0f, -1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX,
+	//	-1.0f, -1.0f*YMAX/XMAX, 1.0f*ZMAX/XMAX
+	//};
+
+	GLfloat vertice[] ={
+		-1.0f, 1.0f*height_/width_, -1.0f*depth_/width_,
+		1.0f, 1.0f*height_/width_, -1.0f*depth_/width_,
+		1.0f, 1.0f*height_/width_, 1.0f*depth_/width_,
+		-1.0f, 1.0f*height_/width_, 1.0f*depth_/width_,
+		-1.0f, -1.0f*height_/width_, -1.0f*depth_/width_,
+		1.0f, -1.0f*height_/width_, -1.0f*depth_/width_,
+		1.0f, -1.0f*height_/width_, 1.0f*depth_/width_,
+		-1.0f, -1.0f*height_/width_, 1.0f*depth_/width_
 	};
 
 	const GLfloat texcoord[] = {
@@ -200,7 +218,11 @@ void VolumeRenderer::_init_buffers()
 	glGenTextures(1, &_back_face_tex);
 	glGenFramebuffers(1, &_fbo);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
-	glBindTexture(GL_TEXTURE_2D, _back_face_tex);
+	/*	glGenRenderbuffers(1, &depth_render_buffer_);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, (GLsizei)_screen_width, (GLsizei)_screen_height);
+	glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer_);
+	*/glBindTexture(GL_TEXTURE_2D, _back_face_tex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -209,6 +231,7 @@ void VolumeRenderer::_init_buffers()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, (GLsizei)_screen_width, (GLsizei)_screen_height, 0, GL_RGBA, GL_FLOAT, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	//glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	//vao for screen
 	glGenVertexArrays(1, &_box_vao);

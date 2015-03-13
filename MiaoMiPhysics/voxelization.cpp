@@ -81,13 +81,13 @@ VoxelMaker* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 	//test
 	voxel_maker_ptr->VoxelizationLogical();
 	//	glm::ivec3(x-1,y-1,z-1));
-	for (int i = 0; i < x*y; i++)
-	{
-		printf("%d", voxel_maker_ptr->data_buffer_loc_[i]);
+	//for (int i = 0; i < x*y; i++)
+	//{
+	//	printf("%d", voxel_maker_ptr->data_buffer_loc_[i]);
 
-		if ((i+1)%x == 0)
-			printf("\n");
-	}
+	//	if ((i+1)%x == 0)
+	//		printf("\n");
+	//}
 
 	//暂定
 	return voxel_maker_ptr;
@@ -166,6 +166,11 @@ void VoxelMaker::SetSize(int size)
 				vertices_max_[i] = ((float)box_size_i[i]) / scale_f + vertices_min_[i]; 
 			}
 		}
+		//if (/*box_size_i[i] % 2*/i == 2)
+		//{
+		//	box_size_i[i] += 15;
+		//	vertices_max_[i] = ((float)box_size_i[i]) / scale_f + vertices_min_[i]; 
+		//}
 	}
 
 	width_ = box_size_i[0];
@@ -242,6 +247,7 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 			GL_TEXTURE_2D, depth_texture_ids[i], 0);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	}
 	/*********************gpu setup*****************************/
 
@@ -260,7 +266,7 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		size.x * size.y * 2,
 		size.y * size.z * 2 + size.x * size.y * 2
 	};
-	for(int i = 2; i < 3; i++)
+	for(int i = 0; i < 3; i++)
 	{
 		eye_model = glm::mat4(1.0f);
 		glm::mat4 model = glm::mat4(1.0f);
@@ -269,17 +275,22 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		//front
 		if (i == 0)
 		{
+			//model = glm::rotate(model, 180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+			//model = glm::rotate(model, 180.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 			up[(i+1)%3] = 1.0f;
 		}
 		else if (i == 1)
 		{
+			model = glm::rotate(model, 180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 			up[(i+1)%3] = 1.0f;
 		}
 		else
 		{
-			up[(i+1)%3] = -1.0f;
+			model = glm::rotate(model, 180.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+			up[(i+1)%3] = 1.0f;
 		}
 		//把模型移动到原点
+		
 		model = glm::translate(model, -look_at);
 		//把眼睛移动到大端
 		eye = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -294,13 +305,16 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		glClearDepth(-10e30f);
 		glDepthFunc(GL_GREATER);
 
-		//glm::vec3 vertice_min_t = -(glm::vec3)size * (float)cell_size_/2.0f;
-		//glm::vec3 vertice_max_t = (glm::vec3)size * (float)cell_size_/2.0f;
+		//glm::vec3 vertice_min_t = vertice_min;
+		//glm::vec3 vertice_max_t = vertice_max;
 		glm::vec3 vertice_min_t = glm::vec3(
 			-(float)size.x * cell_size_ / 2.0f/* - 10e-1f*/,
 			-(float)size.y * cell_size_ / 2.0f/* - 10e-1f*/,
 			-(float)size.z * cell_size_ / 2.0f/* - 10e-1f*/
 			);
+		//glm::vec3 vertice_min_t = glm::vec3(
+		//	0.0f, 0.0f, 0.0f
+		//	);
 		glm::vec3 vertice_max_t = glm::vec3(
 			(float)size.x * cell_size_ / 2.0f/* + 10e-1f*/,
 			(float)size.y * cell_size_ / 2.0f/* + 10e-1f*/,
@@ -316,20 +330,25 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2]);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
 		glBindTexture(GL_TEXTURE_2D, 0);
+		//DrawSixTimes(projection*view*model, frame_buffers[i*2 + 1], vao);
+		//glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2 + 1]);
+		//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, 
+		//	cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
+		//glBindTexture(GL_TEXTURE_2D, 0);
 
-		for (int j = 0; j < image_width[i]*image_height[i]; j++)
-		{
-			float _depth = cpu_buffer[j + cpu_buffer_offset[i]];
-			if (_depth > 0.0f)
-			{
-				printf("1");
-			}
-			else	printf("0");
-			if ((j+1)%image_width[i] == 0)
-			{
-				printf("\n");
-			}
-		}
+		//for (int j = 0; j < image_width[i]*image_height[i]; j+=2)
+		//{
+		//	float _depth = cpu_buffer[j + cpu_buffer_offset[i]];
+		//	if (_depth > 0.0f)
+		//	{
+		//		printf("1");
+		//	}
+		//	else	printf("0");
+		//	if ((j+1)%image_width[i] == 0)
+		//	{
+		//		printf("\n");
+		//	}
+		//}
 
 		//back
 		//把眼睛移动到小端
@@ -346,14 +365,32 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		glDepthFunc(GL_GREATER);
 		//垂直于up方向应镜像
 		projection = glm::ortho(
-			vertice_min_t[i], vertice_max_t[i],
+			-vertice_min_t[i], -vertice_max_t[i],
 			-vertice_min_t[(i+1)%3], -vertice_max_t[(i+1)%3],
 			0.0f , vertice_max_t[(i+2)%3]-vertice_min_t[(i+2)%3]);
-		//DrawSixTimes(projection*view*model, frame_buffers[i*2 + 1], vao);
+		DrawSixTimes(projection*view*model, frame_buffers[i*2 + 1], vao);
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2 + 1]);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, 
 			cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
 		glBindTexture(GL_TEXTURE_2D, 0);
+		//DrawSixTimes(projection*view*model, frame_buffers[i*2], vao);
+		//glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2]);
+		//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
+		//glBindTexture(GL_TEXTURE_2D, 0);
+
+		//for (int j = 0; j < image_width[i]*image_height[i]; j+=2)
+		//{
+		//	float _depth = cpu_buffer[j + cpu_buffer_offset[i] + image_width[i]*image_height[i]];
+		//	if (_depth > 0.0f)
+		//	{
+		//		printf("1");
+		//	}
+		//	else	printf("0");
+		//	if ((j+1)%image_width[i] == 0)
+		//	{
+		//		printf("\n");
+		//	}
+		//}
 	}
 	/*********************render 6 times************************/
 	
@@ -399,7 +436,7 @@ void VoxelMaker::DrawSixTimes(const glm::mat4& pvm, GLuint framebuffer_id, GLuin
 		GL_COLOR_ATTACHMENT0,
 		GL_DEPTH_ATTACHMENT
 	};
-	glDrawBuffers(1, fboBuffers);
+	glDrawBuffers(2, fboBuffers);
 	GLint pvm_mat_loc = glGetUniformLocation(draw_depth_program_, "pvm");
 	glUniformMatrix4fv(pvm_mat_loc, 1, GL_FALSE, glm::value_ptr(pvm));
 
@@ -429,6 +466,7 @@ void VoxelMaker::VoxelizationLogical()
 		num_unsure = FillVoxels(start_min, end_max);
 		//FindUnsureBox(start_min, end_max);
 		iterate_count++;
+		printf("%d\n", num_unsure);
 		if (iterate_count > 1)	break;
 	}
 }
@@ -453,6 +491,7 @@ const glm::ivec3 Backward_Sum[6] =
 	glm::ivec3(0, 1, 0)
 };
 
+//static int test[128][128];
 int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 {
 	float* depth_ptr = DrawDepth(start_min, end_max);
@@ -461,13 +500,25 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 	DepthDirection direction;
 	
 	int size_i = size.x*size.y*2 + size.x*size.z*2+size.y*size.z*2;
+	
+	//memset(test, 0, sizeof(int)*128*128);
 	for (int i = 0; i < size_i; i++)
 	{
 		bool is_inside = LocationDepth(direction, current_surface_loc, 
 			start_point, i, depth_ptr[i], start_min, end_max);
 		//glm::ivec3 start_point = current_surface_loc + Backward_Sum[direction] * current_surface_loc[direction];
+		if (current_surface_loc.x < 0 || current_surface_loc.y < 0 || current_surface_loc.z < 0
+			||current_surface_loc.x >= width_ || current_surface_loc.y >= height_ || current_surface_loc.z >= depth_ ||
+			start_point.x < 0 || start_point.y < 0 || start_point.z < 0||
+			start_point.x >= width_ || start_point.y >= height_ || start_point.z >= width_)
+		{
+			printf("%d", i);
+			system("pause");
+		}
+
 		if (is_inside)
-		{//命中条件：i==3648
+		{
+			//test[current_surface_loc.x][current_surface_loc.z] = 1;
 			FillInsideSurface(current_surface_loc);
 			if (start_point != current_surface_loc)
 			{
@@ -481,11 +532,25 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 			FillWithMaterial(material, start_point, current_surface_loc, direction);
 		}
 		if (material_count_ > 254)	break;
+
 	}
-	//
-	//glm::ivec3 temp = start_min;
-	//start_min = end_max;
-	//end_max = temp;
+	//for (int j = 0; j < 128; j++)
+	//{
+	//	for (int i = 0; i < 64; i ++)
+	//	{
+	//		printf("%d", test[j][i]);
+	//	}
+	//	printf("\n");
+	//}
+	//for (int j = 0; j < 128; j++)
+	//{
+	//	for (int i = 64; i < 128; i ++)
+	//	{
+	//		printf("%d", test[j][i]);
+	//	}
+	//	printf("\n");
+	//}
+
 	int max_int = 1028;
 	start_min = glm::ivec3(max_int, max_int, max_int);
 	end_max = glm::ivec3(-max_int,-max_int, -max_int);
@@ -537,26 +602,31 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 		direction = static_cast<VoxelMaker::DepthDirection>(i);
 		accumulate_size += texture_sizes[i];
 	}
+
 	glm::ivec3 current_flat;
 	current_flat[(direction/2 + 2) % 3] = 0;
-	current_flat[direction/2] = depth_index%current_size[direction/2];
-	current_flat[(direction/2 + 1) % 3] = (depth_index - (accumulate_size - texture_sizes[direction]))/current_size[direction/2];
-	//glm::ivec3 frag_step = glm::ivec3(1, 1, 1) - Forward_Sum[direction];
-	//glm::ivec3 frag_step = glm::ivec3(1, 1, 1);
-	//frag_step[(direction/2 + 2) % 3] = 0;
-	//glm::ivec3 start_point;
+	int current_index = depth_index - (accumulate_size - texture_sizes[direction]/*-1*/);
+	if (current_index < 0)	current_index = 0;
+	current_flat[direction/2] =current_index%current_size[direction/2];
+	current_flat[(direction/2 + 1) % 3] = current_index/current_size[direction/2];
+	//current_flat[(direction/2 + 1) % 3] =current_index%current_size[direction/2];
+	//current_flat[direction/2] = current_index/current_size[direction/2];
+
 	if (direction%2 == 0)
 	{
+		//depth_value = 1.0f - depth_value;
 		start_point = current_flat + start_min;
-		//start_point[(direction/2) % 3] = end_max[(direction/2) % 3] - start_point[(direction/2) % 3];
+		//glm::ivec3 start_point_new = current_flat + start_min;
+		//start_point[(direction/2)] = end_max[(direction/2) % 3] - start_point_new[(direction/2) % 3];
+		//start_point[(direction/2)%3] = end_max[(direction/2)] - start_point_new[(direction/2)];
 	}
 	else
 	{
 		start_point = end_max - current_flat;
-		//start_point[(direction/2) % 3] = end_max[(direction/2) % 3] - start_point[(direction/2) % 3];
+		start_point[(direction/2) % 3] = end_max[(direction/2) % 3] - start_point[(direction/2) % 3];
 	}
 
-	if (depth_value < 0.0f)
+	if (depth_value <= 0.0f)
 	{
 		//location = start_point + Forward_Sum[direction] * current_size[(direction/2 + 2)%3] - glm::ivec3(1,1,1);
 		location = start_point + Forward_Sum[direction] * (current_size[(direction/2 + 2)%3]-1);
@@ -568,8 +638,13 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 	
 	if (depth_value > (float)depth_count)
 		depth_count++;
-	location = start_point + Forward_Sum[direction] * (depth_count/*-1*/);
-
+	if (depth_count == 0)
+	{
+		location = start_point/* + Forward_Sum[direction]*/;
+	}
+	else
+		location = start_point + Forward_Sum[direction] * (depth_count-1);
+	//test[current_flat.x][current_flat.y] = 1;
 	return true;
 }
 
@@ -640,7 +715,7 @@ unsigned char VoxelMaker::FindMaterial(glm::ivec3 start_point, glm::ivec3 end_po
 void VoxelMaker::FillWithMaterial(unsigned char material,glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction)
 {
 	int depth_axis = (direction/2 + 2) % 3;
-	assert(start_point[depth_axis] < width_);
+	//assert(start_point[depth_axis] < width_);
 
 	//int current_axis_point = start_point[depth_axis];
 	glm::ivec3 point_index = start_point;
@@ -717,7 +792,7 @@ void VoxelMaker::FillWithMaterial(unsigned char material,glm::ivec3 start_point,
 void VoxelMaker::FillWithOutSide(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction)
 {
 	int depth_axis = (direction/2 + 2) % 3;
-	assert(start_point[depth_axis] < width_);
+	//assert(start_point[depth_axis] < width_);
 
 	//int current_axis_point = start_point[depth_axis];
 	glm::ivec3 point_index = start_point;
@@ -796,6 +871,9 @@ void VoxelMaker::FillInsideSurface(glm::ivec3 point_index)
 	int index = point_index.x +
 		point_index.y * height_
 		+ point_index.z * width_ * height_;
+	//int index = point_index.y +
+	//	point_index.x * height_
+	//	+ point_index.z * width_ * height_;
 	FillVoxelWith(INSIDE_SURFACE, index);
 }
 

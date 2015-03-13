@@ -94,7 +94,7 @@ void main(void)\n
 		samplerStep += normalize(len)*(1.0/256.0);\n
 		step -= 1.0;\n
 	}\n
-
+	//FragColor = vec4(vec3(1.0f)-back3DCoord, 1.0);\n
 	FragColor = vec4(colorSum, 1.0);\n
 }\n
 );
@@ -121,7 +121,7 @@ const char *drawDepthFragment = STRINGIFY(
 {\n
 //p*v*m将z变换到了（-1.0f,1.0f）\n
 //if(z_value < 0.0f)	discard;
-FragColor = vec4((z_value+1.0f+10e-30f)/2.0f/*gl_FragCoord.z*/
+FragColor = vec4(/*(z_value+1.0f+10e-30f)/2.0f*/gl_FragCoord.z
 , (z_value+1.0f+10e-10f)/2.0f, (z_value+1.0f+10e-10f)/2.0f, 1.0f);\n
 //test
 //FragColor = vec4(0.0f, 0.0f, (zValue-0.9f)*5.0f, 1.0f);\n
