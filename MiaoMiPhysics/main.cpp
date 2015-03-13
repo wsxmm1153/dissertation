@@ -92,8 +92,12 @@ bool loadTextures() {
 
 	glTexImage3D(GL_TEXTURE_3D,0,GL_INTENSITY,_x,_y,_z,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,pVolume);
 	//glTexImage3D(GL_TEXTURE_3D,0,GL_INTENSITY,XMAX,YMAX,ZMAX,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,pVolume);
-
+	//glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, _x, _y, _z, 0, GL_RED, GL_UNSIGNED_BYTE, pVolume);
+	//glTextureImage3DEXT(texName, GL_TEXTURE_3D,0,GL_INTENSITY,_x,_y,_z,0,
+	//	GL_LUMINANCE,GL_UNSIGNED_BYTE,pVolume);
 	//delete [] pVolume;
+
+	glBindTexture(GL_TEXTURE_3D, 0);
 	delete voxel_maker_ptr_s;
 
 	return true;

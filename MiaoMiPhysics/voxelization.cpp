@@ -142,6 +142,11 @@ void VoxelMaker::SetSize(int size)
 		size = VOXEL_DATA_BUFFER_MAX_SIZE;
 	}
 	
+	if (size%2)
+	{
+		size--;
+	}
+
 	assert(max_axis > 10e-30); 
 	float scale_f = (float)size / max_axis;
 	
@@ -149,7 +154,7 @@ void VoxelMaker::SetSize(int size)
 	for (int i = 0; i < 3; i++)
 	{
 		box_size_f[i] *= scale_f;
-		if (abs(box_size_f[i] - (float)size) < 10e-10)
+		if (abs(box_size_f[i] - (float)size) < 1e-30)
 		{
 			box_size_i[i] = size;
 		}
@@ -163,6 +168,11 @@ void VoxelMaker::SetSize(int size)
 			else
 			{
 				box_size_i[i] = size_i + 1;
+				vertices_max_[i] = ((float)box_size_i[i]) / scale_f + vertices_min_[i]; 
+			}
+			if (box_size_i[i] % 2)
+			{
+				box_size_i[i] += 1;
 				vertices_max_[i] = ((float)box_size_i[i]) / scale_f + vertices_min_[i]; 
 			}
 		}
@@ -336,19 +346,19 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		//	cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
 		//glBindTexture(GL_TEXTURE_2D, 0);
 
-		//for (int j = 0; j < image_width[i]*image_height[i]; j+=2)
-		//{
-		//	float _depth = cpu_buffer[j + cpu_buffer_offset[i]];
-		//	if (_depth > 0.0f)
-		//	{
-		//		printf("1");
-		//	}
-		//	else	printf("0");
-		//	if ((j+1)%image_width[i] == 0)
-		//	{
-		//		printf("\n");
-		//	}
-		//}
+		for (int j = 0; j < image_width[i]*image_height[i]; j++)
+		{
+			float _depth = cpu_buffer[j + cpu_buffer_offset[i]];
+			if (_depth > 0.0f)
+			{
+				printf("1");
+			}
+			else	printf("0");
+			if ((j+1)%image_width[i] == 0)
+			{
+				printf("\n");
+			}
+		}
 
 		//back
 		//把眼睛移动到小端
@@ -378,19 +388,19 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
 		//glBindTexture(GL_TEXTURE_2D, 0);
 
-		//for (int j = 0; j < image_width[i]*image_height[i]; j+=2)
-		//{
-		//	float _depth = cpu_buffer[j + cpu_buffer_offset[i] + image_width[i]*image_height[i]];
-		//	if (_depth > 0.0f)
-		//	{
-		//		printf("1");
-		//	}
-		//	else	printf("0");
-		//	if ((j+1)%image_width[i] == 0)
-		//	{
-		//		printf("\n");
-		//	}
-		//}
+		for (int j = 0; j < image_width[i]*image_height[i]; j++)
+		{
+			float _depth = cpu_buffer[j + cpu_buffer_offset[i] + image_width[i]*image_height[i]];
+			if (_depth > 0.0f)
+			{
+				printf("1");
+			}
+			else	printf("0");
+			if ((j+1)%image_width[i] == 0)
+			{
+				printf("\n");
+			}
+		}
 	}
 	/*********************render 6 times************************/
 	
@@ -467,7 +477,7 @@ void VoxelMaker::VoxelizationLogical()
 		//FindUnsureBox(start_min, end_max);
 		iterate_count++;
 		printf("%d\n", num_unsure);
-		if (iterate_count > 1)	break;
+		if (iterate_count > 0)	break;
 	}
 }
 
@@ -491,7 +501,7 @@ const glm::ivec3 Backward_Sum[6] =
 	glm::ivec3(0, 1, 0)
 };
 
-//static int test[128][128];
+static int test[128][128];
 int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 {
 	float* depth_ptr = DrawDepth(start_min, end_max);
@@ -501,7 +511,7 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 	
 	int size_i = size.x*size.y*2 + size.x*size.z*2+size.y*size.z*2;
 	
-	//memset(test, 0, sizeof(int)*128*128);
+	memset(test, 0, sizeof(int)*128*128);
 	for (int i = 0; i < size_i; i++)
 	{
 		bool is_inside = LocationDepth(direction, current_surface_loc, 
@@ -518,7 +528,7 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 
 		if (is_inside)
 		{
-			//test[current_surface_loc.x][current_surface_loc.z] = 1;
+			test[current_surface_loc.x][current_surface_loc.y] = 1;
 			FillInsideSurface(current_surface_loc);
 			if (start_point != current_surface_loc)
 			{
@@ -534,14 +544,14 @@ int VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max)
 		if (material_count_ > 254)	break;
 
 	}
-	//for (int j = 0; j < 128; j++)
-	//{
-	//	for (int i = 0; i < 64; i ++)
-	//	{
-	//		printf("%d", test[j][i]);
-	//	}
-	//	printf("\n");
-	//}
+	for (int j = 0; j < width_; j++)
+	{
+		for (int i = 0; i < height_; i ++)
+		{
+			printf("%d", test[i][j]);
+		}
+		printf("\n");
+	}
 	//for (int j = 0; j < 128; j++)
 	//{
 	//	for (int i = 64; i < 128; i ++)
@@ -614,11 +624,7 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 
 	if (direction%2 == 0)
 	{
-		//depth_value = 1.0f - depth_value;
 		start_point = current_flat + start_min;
-		//glm::ivec3 start_point_new = current_flat + start_min;
-		//start_point[(direction/2)] = end_max[(direction/2) % 3] - start_point_new[(direction/2) % 3];
-		//start_point[(direction/2)%3] = end_max[(direction/2)] - start_point_new[(direction/2)];
 	}
 	else
 	{
