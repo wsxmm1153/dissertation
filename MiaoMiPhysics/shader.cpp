@@ -94,7 +94,7 @@ void main(void)\n
 		samplerStep += normalize(len)*(1.0/256.0);\n
 		step -= 1.0;\n
 	}\n
-
+	//FragColor = vec4(vec3(1.0f)-back3DCoord, 1.0);\n
 	FragColor = vec4(colorSum, 1.0);\n
 }\n
 );
@@ -102,28 +102,32 @@ void main(void)\n
 const char *drawDepthVertex = STRINGIFY(
 #version 430\n
 	in vec3 vVertex;\n
-	uniform mat4 pvm;\n
+	uniform mat4 vm;\n
+	uniform mat4 p;
 	smooth out float z_value;\n
 	void main(void)\n
 {\n
-vec4 pp = pvm * vec4(vVertex, 1.0);\n
-z_value = pp.z;
-gl_Position = pp;\n
+vec4 pp = vm * vec4(vVertex, 1.0);\n
+z_value = pp.z / pp.w;
+gl_Position = p * pp;\n
 }\n
 );
 
 const char *drawDepthFragment = STRINGIFY(
 #version 430\n
 	smooth in float z_value;\n
-	//out vec4 FragColor;\n
+	out vec4 FragColor;\n
 	layout (r32f) uniform image2D depth_image;
 	void main(void)\n
 {\n
 //p*v*m将z变换到了（-1.0f,1.0f）\n
-vec4 FragColor = vec4(0.0, 0.0, (z_value+1.0f+10e-10f)/2.0f, 1.0f);\n
+//if(z_value < 0.0f)	discard;
+FragColor = vec4(/*(z_value+1.0f+10e-30f)/2.0f*/gl_FragCoord.z
+, gl_FragCoord.z, gl_FragCoord.z, 1.0f);\n
 //test
 //FragColor = vec4(0.0f, 0.0f, (zValue-0.9f)*5.0f, 1.0f);\n
-imageStore(depth_image, ivec2(gl_FragCoord.xy), vec4(FragColor.z, FragColor.z, FragColor.z, FragColor.z));\n
+//imageStore(depth_image, ivec2(gl_FragCoord.xy), vec4(FragColor.z, FragColor.z, FragColor.z, FragColor.z));\n
+//imageStore(depth_image, ivec2(gl_FragCoord.xy), vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z));\n
 }\n
 );
 

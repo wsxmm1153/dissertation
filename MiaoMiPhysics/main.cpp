@@ -54,15 +54,15 @@ static GLushort index[] =
 //the file is .raw
 bool loadTextures() {
 
-	//FILE *pFile = fopen(RAWFILENAME,"rb");
-	//if (NULL == pFile) {
-	//	return false;
-	//}
+	/*	FILE *pFile = fopen(RAWFILENAME,"rb");
+	if (NULL == pFile) {
+	return false;
+	}
 
-	//int size = XMAX*YMAX*ZMAX;
-	//unsigned char *pVolume = new unsigned char[size];
-	//bool ok = (size == fread(pVolume,sizeof(unsigned char), size,pFile));
-	//fclose(pFile);	
+	int size = XMAX*YMAX*ZMAX;
+	unsigned char *pVolume = new unsigned char[size];
+	bool ok = (size == fread(pVolume,sizeof(unsigned char), size,pFile));
+	fclose(pFile);*/	
 	int _x,_y,_z;
 	voxel_maker_ptr_s->GetSize(_x, _y, _z);
 	unsigned char *pVolume = voxel_maker_ptr_s->data_buffer_loc_;
@@ -74,10 +74,10 @@ bool loadTextures() {
 		}
 		else if (pVolume[i] == 1)
 		{
-			pVolume[i] = 207;
+			pVolume[i] = 250;
 		}
 		else
-			pVolume[i] = 207;
+			pVolume[i] = 125;
 	}
 	glGenTextures(1,&texName);
 
@@ -92,8 +92,12 @@ bool loadTextures() {
 
 	glTexImage3D(GL_TEXTURE_3D,0,GL_INTENSITY,_x,_y,_z,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,pVolume);
 	//glTexImage3D(GL_TEXTURE_3D,0,GL_INTENSITY,XMAX,YMAX,ZMAX,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,pVolume);
-
+	//glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, _x, _y, _z, 0, GL_RED, GL_UNSIGNED_BYTE, pVolume);
+	//glTextureImage3DEXT(texName, GL_TEXTURE_3D,0,GL_INTENSITY,_x,_y,_z,0,
+	//	GL_LUMINANCE,GL_UNSIGNED_BYTE,pVolume);
 	//delete [] pVolume;
+
+	glBindTexture(GL_TEXTURE_3D, 0);
 	delete voxel_maker_ptr_s;
 
 	return true;
@@ -105,7 +109,7 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("earth.obj", 32);
+	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 64);
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
@@ -120,7 +124,10 @@ void display()
 	cameraDisplay();
 	glm::mat4 mv = View * Model;
 	glm::mat4 p = Projection;
-	VolumeRenderer::drawPhysicsWorld(texName, &mv, &p);
+	int _x,_y,_z;
+	voxel_maker_ptr_s->GetSize(_x, _y, _z);
+	//VolumeRenderer::drawPhysicsWorld(texName, &mv, &p,XMAX, YMAX, ZMAX);
+	VolumeRenderer::drawPhysicsWorld(texName, &mv, &p,_x, _y, _z);
 	/***************test renderer*************************/
 
 	/***************test voxel maker*************************/

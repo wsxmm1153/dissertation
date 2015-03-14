@@ -56,6 +56,10 @@ public:
 	//static VoxelStructure* MakeObjToVoxel(const char* obj_path, int voxel_size);
 	unsigned char* data_buffer_loc_;
 	//‘› ±≤‚ ‘”√
+	//float* DrawDepth(
+	//	glm::ivec3 start_min,
+	//	glm::ivec3 end_max
+	//	);
 	static VoxelMaker* MakeObjToVoxel(const char* obj_path, int voxel_size);
 	static VoxelStructure* LoadVoxelFromFile(const char* voxel_path);
 	static void SaveToFile(const VoxelStructure* voxel, char* path);
@@ -64,11 +68,11 @@ protected:
 	enum DepthDirection
 	{
 		XOY_MAX_Z_UP_Y = 0,
-		XOY_MIN_Z_DOWN_Y = 1,
-		YOZ_MAX_X_UP_Z =2,
-		YOZ_MIN_X_DOWN_Z = 3,
-		ZOX_MAX_Y_UP_X = 4,
-		ZOX_MIN_Y_DOWN_x = 5
+		XOY_MIN_Z_UP_Y = 1,
+		YOZ_MIN_X_UP_Z =2,
+		YOZ_MAX_X_UP_Z = 3,
+		ZOX_MIN_Y_DOWN_X = 4,
+		ZOX_MAX_Y_DOWN_X = 5
 	};
 
 	//data
@@ -92,7 +96,7 @@ protected:
 		glm::ivec3 end_max
 		);
 
-	void DrawSixTimes(const glm::mat4& pvm, GLuint texture_id, GLuint vao);
+	void DrawSixTimes(const glm::mat4& pvm, const glm::mat4& p, GLuint framebuffer_id, GLuint vao);
 
 	void FindMiddle(glm::vec3 current_max, glm::vec3 current_min, glm::vec3& middle_position);
 
