@@ -233,8 +233,8 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 	glGenTextures(6, depth_texture_ids);
 	glGenFramebuffers(6, frame_buffers);
 	glGenRenderbuffers(6, frame_buffer_depth_buffer);
-	unsigned int image_width[3] = {size.x, size.y, size.z};
-	unsigned int image_height[3] = {size.y, size.z, size.x};
+	unsigned int image_width[3] = {size.x, size.z, size.z};
+	unsigned int image_height[3] = {size.y, size.y, size.x};
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -276,75 +276,47 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		size.x * size.y * 2,
 		size.y * size.z * 2 + size.x * size.y * 2
 	};
-	for(int i = 0; i < 3; i++)
+	for(int i = 1; i < 2; i++)
 	{
 		eye_model = glm::mat4(1.0f);
 		glm::mat4 model = glm::mat4(1.0f);
 		glViewport(0, 0, image_width[i], image_height[i]);
 		up = glm::vec3(0.0f, 0.0f, 0.0f);
+		eye = look_at;
+		glm::vec3 half_size = (vertice_max - vertice_min)/2.0f;
 		//front
 		if (i == 0)
 		{
-			//model = glm::rotate(model, 180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-			//model = glm::rotate(model, 180.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-			up[(i+1)%3] = 1.0f;
+			eye.z = vertice_max.z;
+			up = glm::vec3(0.0f, 1.0f, 0.0f);
 		}
 		else if (i == 1)
 		{
-			model = glm::rotate(model, 180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-			up[(i+1)%3] = 1.0f;
+			eye.x = vertice_min.x;
+			up = glm::vec3(0.0f, 1.0f, 0.0f);
 		}
 		else
 		{
-			model = glm::rotate(model, 180.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-			up[(i+1)%3] = 1.0f;
+			eye.y = vertice_min.y;
+			up = glm::vec3(-1.0f, 0.0f, 0.0f);
 		}
-		//把模型移动到原点
-		
-		model = glm::translate(model, -look_at);
-		//把眼睛移动到大端
-		eye = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 eye_translate_v = glm::vec3(0.0f, 0.0f, 0.0f);
-		eye_translate_v[(i+2)%3] = size[(i+2)%3] * cell_size_ / 2.0f;
-		eye_model = glm::translate(eye_model, eye_translate_v);
-		glm::vec4 eye_v4 = eye_model * glm::vec4(eye, 1.0f);
-		eye = glm::vec3(eye_v4.x, eye_v4.y, eye_v4.z);
-		//view矩阵
-		view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
 
-		glClearDepth(-10e30f);
-		glDepthFunc(GL_GREATER);
+		model = glm::mat4(1.0f);
+		view = glm::lookAt(eye, look_at, up);
 
-		//glm::vec3 vertice_min_t = vertice_min;
-		//glm::vec3 vertice_max_t = vertice_max;
-		glm::vec3 vertice_min_t = glm::vec3(
-			-(float)size.x * cell_size_ / 2.0f/* - 10e-1f*/,
-			-(float)size.y * cell_size_ / 2.0f/* - 10e-1f*/,
-			-(float)size.z * cell_size_ / 2.0f/* - 10e-1f*/
-			);
-		//glm::vec3 vertice_min_t = glm::vec3(
-		//	0.0f, 0.0f, 0.0f
-		//	);
-		glm::vec3 vertice_max_t = glm::vec3(
-			(float)size.x * cell_size_ / 2.0f/* + 10e-1f*/,
-			(float)size.y * cell_size_ / 2.0f/* + 10e-1f*/,
-			(float)size.z * cell_size_ / 2.0f/* + 10e-1f*/
-			);
-		
 		projection = glm::ortho(
-			vertice_min_t[i]/*-(cell_size_ + 0.15f)*/, vertice_max_t[i],
-			vertice_min_t[(i+1)%3], vertice_max_t[(i+1)%3],
-			0.0f , vertice_max_t[(i+2)%3]-vertice_min_t[(i+2)%3]);
+			-half_size.x, half_size.x,
+			-half_size.y, half_size.y,
+			0.0f , half_size.z * 2.0f);
 
-		DrawSixTimes(projection*view*model, frame_buffers[i*2], vao);
+		//如果只生成中心图，则深度测试改为较大通过
+		//glClearDepth(0.0f);
+		//glDepthFunc(GL_GREATER);
+
+		DrawSixTimes(view*model, projection, frame_buffers[i*2], vao);
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2]);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		//DrawSixTimes(projection*view*model, frame_buffers[i*2 + 1], vao);
-		//glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2 + 1]);
-		//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, 
-		//	cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
-		//glBindTexture(GL_TEXTURE_2D, 0);
 
 		for (int j = 0; j < image_width[i]*image_height[i]; j++)
 		{
@@ -361,32 +333,31 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		}
 
 		//back
-		//把眼睛移动到小端
-		eye = glm::vec3(0.0f, 0.0f, 0.0f);
-		eye_model = glm::mat4(1.0f);
-		eye_translate_v = glm::vec3(0.0f, 0.0f, 0.0f);
-		eye_translate_v[(i+2)%3] = -size[(i+2)%3] * cell_size_ / 2.0f;
-		eye_model = glm::translate(eye_model, eye_translate_v);
-		eye_v4 = eye_model * glm::vec4(eye, 1.0f);
-		eye = glm::vec3(eye_v4.x, eye_v4.y, eye_v4.z);
-		////view矩阵
-		view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
-		glClearDepth(-10e30f);
-		glDepthFunc(GL_GREATER);
-		//垂直于up方向应镜像
-		projection = glm::ortho(
-			-vertice_min_t[i], -vertice_max_t[i],
-			-vertice_min_t[(i+1)%3], -vertice_max_t[(i+1)%3],
-			0.0f , vertice_max_t[(i+2)%3]-vertice_min_t[(i+2)%3]);
-		DrawSixTimes(projection*view*model, frame_buffers[i*2 + 1], vao);
+
+		if (i == 0)
+		{
+			eye.z = vertice_min.z;
+			up = glm::vec3(0.0f, -1.0f, 0.0f);
+		}
+		else if (i == 1)
+		{
+			eye.x = vertice_max.x;
+			up = glm::vec3(0.0f, -1.0f, 0.0f);
+		}
+		else
+		{
+			eye.y = vertice_max.y;
+			up = glm::vec3(1.0f, 0.0f, 0.0f);
+		}
+
+		//view矩阵
+		view = glm::lookAt(eye, look_at, up);
+
+		DrawSixTimes(view*model, projection, frame_buffers[i*2 + 1], vao);
 		glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2 + 1]);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, 
 			cpu_buffer + cpu_buffer_offset[i] + image_width[i]*image_height[i]);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		//DrawSixTimes(projection*view*model, frame_buffers[i*2], vao);
-		//glBindTexture(GL_TEXTURE_2D, depth_texture_ids[i*2]);
-		//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, cpu_buffer + cpu_buffer_offset[i]);
-		//glBindTexture(GL_TEXTURE_2D, 0);
 
 		for (int j = 0; j < image_width[i]*image_height[i]; j++)
 		{
@@ -434,33 +405,32 @@ void VoxelMaker::FindBoundingBox(glm::vec3& vertices_max, glm::vec3& vertices_mi
 		(size.z + 0) * cell_size);
 }
 
-void VoxelMaker::DrawSixTimes(const glm::mat4& pvm, GLuint framebuffer_id, GLuint vao)
+void VoxelMaker::DrawSixTimes(const glm::mat4& vm, const glm::mat4& p, GLuint framebuffer_id, GLuint vao)
 {
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer_id);
+	//绑定帧缓冲区应该在clear前面
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
 	glUseProgram(draw_depth_program_);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer_id);
-	GLenum fboBuffers[] = {
-		GL_COLOR_ATTACHMENT0,
-		GL_DEPTH_ATTACHMENT
-	};
-	glDrawBuffers(2, fboBuffers);
-	GLint pvm_mat_loc = glGetUniformLocation(draw_depth_program_, "pvm");
-	glUniformMatrix4fv(pvm_mat_loc, 1, GL_FALSE, glm::value_ptr(pvm));
+	
+	//GLenum fboBuffers[] = {
+	//	GL_COLOR_ATTACHMENT0
+	//};
+	//glDrawBuffers(1, fboBuffers);
+	GLint vm_mat_loc = glGetUniformLocation(draw_depth_program_, "vm");
+	glUniformMatrix4fv(vm_mat_loc, 1, GL_FALSE, glm::value_ptr(vm));
 
-	//glBindImageTexture(0, texture_id, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
-	//GLint image_loc = glGetUniformLocation(draw_depth_program_, "depth_image");
-	//glUniform1i(image_loc, 0);
+	GLint p_mat_loc = glGetUniformLocation(draw_depth_program_, "p");
+	glUniformMatrix4fv(p_mat_loc, 1, GL_FALSE, glm::value_ptr(p));
 
 	glBindVertexArray(vao);
 	glDrawArrays(GL_TRIANGLES, 0, vertices_.size());
 
 	glBindVertexArray(0);
 	glUseProgram(0);
-	
-	//glBindImageTexture(0, 0 , 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
 void VoxelMaker::VoxelizationLogical()
@@ -483,8 +453,8 @@ void VoxelMaker::VoxelizationLogical()
 
 const glm::ivec3 Forward_Sum[6] = 
 {
-	glm::ivec3(0, 0, 1),
 	glm::ivec3(0, 0, -1),
+	glm::ivec3(0, 0, 1),
 	glm::ivec3(1, 0, 0),
 	glm::ivec3(-1, 0, 0),
 	glm::ivec3(0, 1, 0),
@@ -493,8 +463,8 @@ const glm::ivec3 Forward_Sum[6] =
 
 const glm::ivec3 Backward_Sum[6] = 
 {
-	glm::ivec3(0, 0, -1),
 	glm::ivec3(0, 0, 1),
+	glm::ivec3(0, 0, -1),
 	glm::ivec3(-1, 0, 0),
 	glm::ivec3(1, 0, 0),
 	glm::ivec3(0, -1, 0),
@@ -614,23 +584,58 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 	}
 
 	glm::ivec3 current_flat;
-	current_flat[(direction/2 + 2) % 3] = 0;
+	//current_flat[(direction/2 + 2) % 3] = 0;
 	int current_index = depth_index - (accumulate_size - texture_sizes[direction]/*-1*/);
 	if (current_index < 0)	current_index = 0;
-	current_flat[direction/2] =current_index%current_size[direction/2];
-	current_flat[(direction/2 + 1) % 3] = current_index/current_size[direction/2];
+	//current_flat[direction/2] =current_index%current_size[direction/2];
+	//current_flat[(direction/2 + 1) % 3] = current_index/current_size[direction/2];
 	//current_flat[(direction/2 + 1) % 3] =current_index%current_size[direction/2];
 	//current_flat[direction/2] = current_index/current_size[direction/2];
 
-	if (direction%2 == 0)
+	switch (direction)
 	{
-		start_point = current_flat + start_min;
+	case XOY_MAX_Z_UP_Y:
+		current_flat.z = end_max.z;
+		current_flat.x = current_index %current_size.x;
+		current_flat.y = current_index / current_size.x;
+		break;
+	case XOY_MIN_Z_UP_Y:
+		current_flat.z = start_min.z;
+		current_flat.x = current_size.x - 1 - current_index %current_size.x;
+		current_flat.y = current_index / current_size.x;
+		break;
+	case YOZ_MIN_X_UP_Z:
+		current_flat.x = start_min.x;
+		current_flat.z = current_index % current_size.z;
+		current_flat.y = current_index / current_size.z;
+		break;
+	case YOZ_MAX_X_UP_Z:
+		current_flat.x = end_max.x;
+		current_flat.z = current_size.z - 1 - current_index % current_size.z;
+		current_flat.y = current_index / current_size.z;
+		break;
+	case ZOX_MIN_Y_DOWN_X:
+		current_flat.y = start_min.y;
+		current_flat.z = current_index % current_size.z;
+		current_flat.x = current_index / current_size.z;
+		break;
+	case ZOX_MAX_Y_DOWN_X:
+		current_flat.y = start_min.y;
+		current_flat.z = current_size.z - 1 - current_index % current_size.z;
+		current_flat.x = current_index / current_size.z;
+		break;
 	}
-	else
-	{
-		start_point = end_max - current_flat;
-		start_point[(direction/2) % 3] = end_max[(direction/2) % 3] - start_point[(direction/2) % 3];
-	}
+
+	//if (direction%2 == 0)
+	//{
+	//	start_point = current_flat + start_min;
+	//}
+	//else
+	//{
+	//	start_point = end_max - current_flat;
+	//	//start_point[(direction/2) % 3] = end_max[(direction/2) % 3] - start_point[(direction/2) % 3];
+	//}
+	start_point = current_flat;
 
 	if (depth_value <= 0.0f)
 	{
