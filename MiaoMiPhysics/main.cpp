@@ -74,10 +74,14 @@ bool loadTextures() {
 		}
 		else if (pVolume[i] == 1)
 		{
-			pVolume[i] = 250;
+			pVolume[i] = 75;
+		}
+		else if (pVolume[i] == 0)
+		{
+			pVolume[i] = 255;
 		}
 		else
-			pVolume[i] = 125;
+			pVolume[i] = 255;
 	}
 	glGenTextures(1,&texName);
 
