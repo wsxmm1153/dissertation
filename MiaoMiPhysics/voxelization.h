@@ -36,7 +36,7 @@ private:
 	int width_;
 	int height_;
 	int depth_;
-	unsigned char* voxel_data_;
+	int* voxel_data_;
 };
 
 class VoxelMaker
@@ -54,7 +54,7 @@ public:
 	VoxelMaker();
 	virtual ~VoxelMaker();
 	//static VoxelStructure* MakeObjToVoxel(const char* obj_path, int voxel_size);
-	unsigned char* data_buffer_loc_;
+	int* data_buffer_loc_;
 	//暂时测试用
 	//float* DrawDepth(
 	//	glm::ivec3 start_min,
@@ -85,8 +85,10 @@ protected:
 	GLuint draw_depth_program_;
 	glm::vec3 vertices_max_, vertices_min_;
 	GLfloat cell_size_;
-	int material_used_number_[256];
+	int material_used_number_[1<<27];
 	int material_count_;
+
+	int Find_Hash(const int x,const int y,const int z);
 
 	void SetSize(int size);
 	void CreatVoxel();
@@ -113,15 +115,17 @@ protected:
 		glm::ivec3 start_min, glm::ivec3 end_max);
 	
 	//实现时注意更新material_count_
-	unsigned char FindMaterial(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
+	int FindMaterial(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
 	//start_point就是包围盒起始点，实现时计算
 	//实现时注意更新material_used_number_
-	void FillWithMaterial(unsigned char material, glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
+	void FillWithMaterial(int material, glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
 	void FillWithOutSide(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
 	void FillInsideSurface(glm::ivec3 point_index);
 
 	//carefully fill the voxel
-	void FillVoxelWith(unsigned char material, int index);
+	void FillVoxelWith(int material, int index);
+
+	void ScanMaterials(const glm::ivec3 start_min, const glm::ivec3 end_max);
 private:
 };
 
