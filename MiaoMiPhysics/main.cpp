@@ -97,6 +97,7 @@ bool loadTextures() {
 		{
 			float color = (glm::atan((float)pVolume[i])
 				+ 3.1416f/2.0f) / 3.1416f;
+			//color = 0.0f;
 			if (color > 0.5f)
 			{
 				image_data[i*4] = 0.0f;
@@ -144,7 +145,7 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 64);
+	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 256);
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
