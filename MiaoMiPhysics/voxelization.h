@@ -5,6 +5,8 @@
 
 #include "util.h"
 #include <vector>
+#include <map>
+#include <set>
 
 class VoxelStructure
 {
@@ -108,7 +110,7 @@ protected:
 
 	void VoxelizationLogical();
 	//返回不确定的个数,并且改变填充包围盒
-	int FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max);
+	bool FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max, int scan_step, int step_axis);
 	//void FindUnsureBox(glm::ivec3& start_min, glm::ivec3& end_max);
 	bool LocationDepth(DepthDirection& direction, glm::ivec3& location,
 		glm::ivec3& start_point, int depth_index, float depth_value,
@@ -127,6 +129,7 @@ protected:
 
 	void ScanMaterials(const glm::ivec3 start_min, const glm::ivec3 end_max);
 private:
+	//std::map<int, std::set<int>> material_map_;
 };
 
 #endif
