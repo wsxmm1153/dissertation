@@ -6,6 +6,7 @@
 
 static VoxelMaker* voxel_maker_ptr_s;
 static GLuint texName;
+static int _x,_y,_z;
 //box and its index
 
 static GLfloat vertice[] ={
@@ -63,7 +64,7 @@ bool loadTextures() {
 	unsigned char *pVolume = new unsigned char[size];
 	bool ok = (size == fread(pVolume,sizeof(unsigned char), size,pFile));
 	fclose(pFile);*/	
-	int _x,_y,_z;
+	
 	voxel_maker_ptr_s->GetSize(_x, _y, _z);
 	int *pVolume = voxel_maker_ptr_s->data_buffer_loc_;
 
@@ -84,7 +85,7 @@ bool loadTextures() {
 			image_data[i*4] = 1.0f;
 			image_data[i*4+1] = 1.0f;
 			image_data[i*4+2] = 1.0f;
-			image_data[i*4+3] = 0.1f;
+			image_data[i*4+3] = 0.5f;
 		}
 		else if (pVolume[i] == 0)//if not sure, red
 		{
@@ -114,6 +115,7 @@ bool loadTextures() {
 			}
 		}
 	}
+	delete voxel_maker_ptr_s;
 
 	glGenTextures(1,&texName);
 
@@ -134,7 +136,8 @@ bool loadTextures() {
 	//delete [] pVolume;
 
 	glBindTexture(GL_TEXTURE_3D, 0);
-	//delete voxel_maker_ptr_s;
+	
+	delete image_data;
 
 	return true;
 }
@@ -145,7 +148,7 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 256);
+	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 290);
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
@@ -160,8 +163,8 @@ void display()
 	cameraDisplay();
 	glm::mat4 mv = View * Model;
 	glm::mat4 p = Projection;
-	int _x,_y,_z;
-	voxel_maker_ptr_s->GetSize(_x, _y, _z);
+	//int _x,_y,_z;
+	//voxel_maker_ptr_s->GetSize(_x, _y, _z);
 	//VolumeRenderer::drawPhysicsWorld(texName, &mv, &p,XMAX, YMAX, ZMAX);
 	VolumeRenderer::drawPhysicsWorld(texName, &mv, &p,_x, _y, _z);
 	/***************test renderer*************************/
