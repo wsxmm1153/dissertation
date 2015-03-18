@@ -32,7 +32,7 @@ VoxelMaker::VoxelMaker():
 	//draw_depth_program_ = compileProgram(commonVertex, commonFragment);
 	glGenBuffers(1, &vertice_buffer_handel_);
 	vertices_max_ = vertices_min_ = glm::vec3(1.0f);
-	memset(material_used_number_, 0, sizeof(int)*(1<<27));
+	memset(material_used_number_, 0, sizeof(int)*(1<<20));
 
 	material_count_ = 1;
 }
@@ -155,6 +155,8 @@ void VoxelMaker::SetSize(int size)
 	};
 	float max_axis = (box_size_f[0] > box_size_f[1]) ? box_size_f[0]:box_size_f[1];
 	max_axis = (max_axis > box_size_f[2]) ? max_axis : box_size_f[2];
+
+	size -= 2;
 
 	if (size > VOXEL_DATA_BUFFER_MAX_SIZE - 2)
 	{
@@ -312,7 +314,7 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 		//front
 		if (i == 0)
 		{
-			eye.z = vertice_max.z;
+			eye.z = vertice_min.z;
 			up = glm::vec3(0.0f, 1.0f, 0.0f);
 			projection = glm::ortho(
 				-half_size.x, half_size.x,
@@ -374,7 +376,7 @@ float* VoxelMaker::DrawDepth(glm::ivec3 start_min, glm::ivec3 end_max)
 
 		if (i == 0)
 		{
-			eye.z = vertice_min.z;
+			eye.z = vertice_max.z;
 			up = glm::vec3(0.0f, 1.0f, 0.0f);
 		}
 		else if (i == 1)
@@ -482,9 +484,12 @@ void VoxelMaker::VoxelizationLogical()
 	glm::ivec3 start_min = glm::ivec3(0, 0, 0);
 	glm::ivec3 end_max = glm::ivec3(width_-1, height_-1, depth_-1);
 
-	ScanMaterials(start_min, end_max);
-
+	//ScanMaterials(start_min, end_max);
+	
 	//前方高能！！！
+	
+	FillVoxels(start_min, end_max, depth_, 2);
+
 	glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
 	int step = (size.y > size.x)? size.x:size.y;
 	step = (step > size.z) ? size.z:step;
@@ -496,7 +501,7 @@ void VoxelMaker::VoxelizationLogical()
 	while (((material_used_number_[NOT_SURE] > 0) || size_reducing) && (step >= 1))
 	{
 		size_reducing = true;
-		for (int i = 0; i < 3; i++)
+		for (int i = 2; i >= 0; i--)
 		{
 			if (step < 1)	break;
 			glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
@@ -504,7 +509,7 @@ void VoxelMaker::VoxelizationLogical()
 			step_init = (step_init > size.z) ? size.z:step_init;
 			step_init /= 2;
 			if (step_init == 0)
-				step_init = 1;
+				step_init = 3;
 			if (step > step_init)
 				step = step_init;
 			
@@ -518,8 +523,8 @@ void VoxelMaker::VoxelizationLogical()
 
 const glm::ivec3 Forward_Sum[6] = 
 {
-	glm::ivec3(0, 0, -1),
 	glm::ivec3(0, 0, 1),
+	glm::ivec3(0, 0, -1),
 	glm::ivec3(1, 0, 0),
 	glm::ivec3(-1, 0, 0),
 	glm::ivec3(0, 1, 0),
@@ -528,8 +533,8 @@ const glm::ivec3 Forward_Sum[6] =
 
 const glm::ivec3 Backward_Sum[6] = 
 {
-	glm::ivec3(0, 0, 1),
 	glm::ivec3(0, 0, -1),
+	glm::ivec3(0, 0, 1),
 	glm::ivec3(-1, 0, 0),
 	glm::ivec3(1, 0, 0),
 	glm::ivec3(0, -1, 0),
@@ -548,11 +553,22 @@ bool VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max,
 
 	scan_start_3d[step_axis] = start_min[step_axis];
 	scan_end_3d[step_axis] = start_min[step_axis] + scan_step;
+	FillPlane(start_min, end_max, (step_axis + 1) % 3, start_min[(step_axis + 1) % 3]);
+	FillPlane(start_min, end_max, (step_axis + 2) % 3, start_min[(step_axis + 2) % 3]);
+	FillPlane(start_min, end_max, (step_axis + 1) % 3, end_max[(step_axis + 1) % 3]);
+	FillPlane(start_min, end_max, (step_axis + 2) % 3, end_max[(step_axis + 2) % 3]);
+	//FillPlane(start_min, end_max, step_axis, scan_start_3d[step_axis]);
 	while(scan_end_3d[step_axis] <= end_max[step_axis])
 	{
+		FillPlane(start_min, end_max, step_axis, scan_start_3d[step_axis]);
+		FillPlane(start_min, end_max, step_axis, scan_end_3d[step_axis]);
 		ScanMaterials(scan_start_3d, scan_end_3d);
 		scan_start_3d[step_axis] += scan_step;
 		scan_end_3d[step_axis] += scan_step;
+		FillPlane(start_min, end_max, (step_axis + 1) % 3, start_min[(step_axis + 1) % 3]);
+		FillPlane(start_min, end_max, (step_axis + 2) % 3, start_min[(step_axis + 2) % 3]);
+		FillPlane(start_min, end_max, (step_axis + 1) % 3, end_max[(step_axis + 1) % 3]);
+		FillPlane(start_min, end_max, (step_axis + 2) % 3, end_max[(step_axis + 2) % 3]);
 	}
 
 	ScanMaterials(scan_start_3d, end_max);
@@ -614,8 +630,8 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 		current_size.z * current_size.x
 	};
 
-	int accumulate_size = texture_sizes[XOY_MAX_Z_UP_Y];
-	direction = XOY_MAX_Z_UP_Y;
+	int accumulate_size = texture_sizes[XOY_MIN_Z_UP_Y];
+	direction = XOY_MIN_Z_UP_Y;
 	
 	while(depth_index >= accumulate_size)
 	{
@@ -749,19 +765,19 @@ int VoxelMaker::FindMaterial(glm::ivec3 start_point, glm::ivec3 end_point, Depth
 
 	if (current_state == NOT_SURE)
 	{
-		assert(material_count_ < (1<<27));
-		for (int i = 3; i < (1<<27); i++)
+		assert(material_count_ < (1<<20));
+		for (int i = 3; i < (1<<20); i++)
 		{
 			if (material_used_number_[i] == 0)
 			{
 				current_state = i;
 				//map begin/////////////////////////////
-				//std::map<int, std::set<int> >::iterator it = material_map_.find(current_state);
-				//if (it == material_map_.end())
-				//{
-				//	std::set<int> i_set;
-				//	material_map_.insert(std::pair<int, std::set<int> >(current_state, i_set));
-				//}
+				std::map<int, std::set<int> >::iterator it = material_map_.find(current_state);
+				if (it == material_map_.end())
+				{
+					std::set<int> i_set;
+					material_map_.insert(std::pair<int, std::set<int> >(current_state, i_set));
+				}
 				//map end//////////////////////////////
 				return current_state;
 			}
@@ -807,27 +823,34 @@ void VoxelMaker::FillWithMaterial(int material,glm::ivec3 start_point, glm::ivec
 		default:
 			if (state_before != material)
 			{
-				for (int i = 0; i < width_*height_*depth_; i++)
+				if (material_used_number_[material] < material_used_number_[state_before])
 				{
-					if (data_buffer_loc_[i] == state_before)
-					{
-						FillVoxelWith(material, i);
-						if (material_used_number_[state_before] == 0)	break;
-					}
+					int tmp = material;
+					material = state_before;
+					state_before = tmp;
+					//FillVoxelWith(material, current_index);
 				}
-				//map begin/////////////////////////////
-				//std::map<int, std::set<int> >::iterator it 
-				//	= material_map_.find(state_before);
-				//assert(it != material_map_.end());
-				//std::set<int>& state_before_set = it->second;
-				//std::set<int>::iterator set_it = state_before_set.begin();
-				//while (set_it != state_before_set.end())
+				//for (int i = 0; i < width_*height_*depth_; i++)
 				//{
-				//	FillVoxelWith(material, *set_it);
-				//	set_it++;
+				//	if (data_buffer_loc_[i] == state_before)
+				//	{
+				//		FillVoxelWith(material, i);
+				//		if (material_used_number_[state_before] == 0)	break;
+				//	}
 				//}
-				//state_before_set.clear();
-				//material_map_.erase(it);
+				//map begin/////////////////////////////
+				std::map<int, std::set<int> >::iterator it 
+					= material_map_.find(state_before);
+				assert(it != material_map_.end());
+				std::set<int>& state_before_set = it->second;
+				std::set<int>::iterator set_it = state_before_set.begin();
+				while (set_it != state_before_set.end())
+				{
+					FillVoxelWith(material, *set_it);
+					set_it++;
+				}
+				state_before_set.clear();
+				material_map_.erase(it);
 				//map end//////////////////////////////
 
 			}
@@ -860,27 +883,34 @@ void VoxelMaker::FillWithMaterial(int material,glm::ivec3 start_point, glm::ivec
 		default:
 			if (state_before != material)
 			{
-				for (int i = 0; i < width_*height_*depth_; i++)
+				if (material_used_number_[material] < material_used_number_[state_before])
 				{
-					if (data_buffer_loc_[i] == state_before)
-					{
-						FillVoxelWith(material, i);
-						if (material_used_number_[state_before] == 0)	break;
-					}
+					int tmp = material;
+					material = state_before;
+					state_before = tmp;
+					FillVoxelWith(material, current_index);
 				}
-				//map begin/////////////////////////////
-				//std::map<int, std::set<int> >::iterator it 
-				//	= material_map_.find(state_before);
-				//assert(it != material_map_.end());
-				//std::set<int>& state_before_set = it->second;
-				//std::set<int>::iterator set_it = state_before_set.begin();
-				//while (set_it != state_before_set.end())
+				//for (int i = 0; i < width_*height_*depth_; i++)
 				//{
-				//	FillVoxelWith(material, *set_it);
-				//	set_it++;
+				//	if (data_buffer_loc_[i] == state_before)
+				//	{
+				//		FillVoxelWith(material, i);
+				//		if (material_used_number_[state_before] == 0)	break;
+				//	}
 				//}
-				//state_before_set.clear();
-				//material_map_.erase(it);
+				//map begin/////////////////////////////
+				std::map<int, std::set<int> >::iterator it 
+					= material_map_.find(state_before);
+				assert(it != material_map_.end());
+				std::set<int>& state_before_set = it->second;
+				std::set<int>::iterator set_it = state_before_set.begin();
+				while (set_it != state_before_set.end())
+				{
+					FillVoxelWith(material, *set_it);
+					set_it++;
+				}
+				state_before_set.clear();
+				material_map_.erase(it);
 				//map end//////////////////////////////
 			}
 			break;
@@ -920,27 +950,27 @@ void VoxelMaker::FillWithOutSide(glm::ivec3 start_point, glm::ivec3 end_point, D
 		default:
 			if (state_before != OUTSIDE)
 			{
-				for (int i = 0; i < width_*height_*depth_; i++)
-				{
-					if (data_buffer_loc_[i] == state_before)
-					{
-						FillVoxelWith(OUTSIDE, i);
-						if (material_used_number_[state_before] == 0)	break;
-					}
-				}
-				//map begin/////////////////////////////
-				//std::map<int, std::set<int> >::iterator it
-				//	= material_map_.find(state_before);
-				//assert(it != material_map_.end());
-				//std::set<int>& state_before_set = it->second;
-				//std::set<int>::iterator set_it = state_before_set.begin();
-				//while (set_it != state_before_set.end())
+				//for (int i = 0; i < width_*height_*depth_; i++)
 				//{
-				//	FillVoxelWith(OUTSIDE, *set_it);
-				//	set_it++;
+				//	if (data_buffer_loc_[i] == state_before)
+				//	{
+				//		FillVoxelWith(OUTSIDE, i);
+				//		if (material_used_number_[state_before] == 0)	break;
+				//	}
 				//}
-				//state_before_set.clear();
-				//material_map_.erase(it);
+				//map begin/////////////////////////////
+				std::map<int, std::set<int> >::iterator it
+					= material_map_.find(state_before);
+				assert(it != material_map_.end());
+				std::set<int>& state_before_set = it->second;
+				std::set<int>::iterator set_it = state_before_set.begin();
+				while (set_it != state_before_set.end())
+				{
+					FillVoxelWith(OUTSIDE, *set_it);
+					set_it++;
+				}
+				state_before_set.clear();
+				material_map_.erase(it);
 				//map end//////////////////////////////
 			}
 			break;
@@ -968,28 +998,28 @@ void VoxelMaker::FillWithOutSide(glm::ivec3 start_point, glm::ivec3 end_point, D
 	default:
 		if (state_before != OUTSIDE)
 		{
-			for (int i = 0; i < width_*height_*depth_; i++)
-			{
-				if (data_buffer_loc_[i] == state_before)
-				{
-					FillVoxelWith(OUTSIDE, i);
-					if (material_used_number_[state_before] == 0)	break;
-				}
-			}
+			//for (int i = 0; i < width_*height_*depth_; i++)
+			//{
+			//	if (data_buffer_loc_[i] == state_before)
+			//	{
+			//		FillVoxelWith(OUTSIDE, i);
+			//		if (material_used_number_[state_before] == 0)	break;
+			//	}
+			//}
 
 			//map begin/////////////////////////////
-			//std::map<int, std::set<int> >::iterator it
-			//	= material_map_.find(state_before);
-			//assert(it != material_map_.end());
-			//std::set<int>& state_before_set = it->second;
-			//std::set<int>::iterator set_it = state_before_set.begin();
-			//while (set_it != state_before_set.end())
-			//{
-			//	FillVoxelWith(OUTSIDE, *set_it);
-			//	set_it++;
-			//}
-			//state_before_set.clear();
-			//material_map_.erase(it);
+			std::map<int, std::set<int> >::iterator it
+				= material_map_.find(state_before);
+			assert(it != material_map_.end());
+			std::set<int>& state_before_set = it->second;
+			std::set<int>::iterator set_it = state_before_set.begin();
+			while (set_it != state_before_set.end())
+			{
+				FillVoxelWith(OUTSIDE, *set_it);
+				set_it++;
+			}
+			state_before_set.clear();
+			material_map_.erase(it);
 			//map end//////////////////////////////
 		}
 		break;
@@ -1027,13 +1057,13 @@ void VoxelMaker::FillVoxelWith(int material, int index)
 	if (material_used_number_[material] <= 0) material_count_++;
 	material_used_number_[material]++;
 	//map begin/////////////////////////////
-	//if (material >= 3)
-	//{
-	//	std::map<int, std::set<int> >::iterator it = material_map_.find(material);
-	//	assert(it != material_map_.end());
-	//	std::set<int>& this_set = it->second;
-	//	this_set.insert(index);
-	//}
+	if (material >= 3)
+	{
+		std::map<int, std::set<int> >::iterator it = material_map_.find(material);
+		assert(it != material_map_.end());
+		std::set<int>& this_set = it->second;
+		this_set.insert(index);
+	}
 	//map end///////////////////////////////
 }
 
@@ -1096,10 +1126,10 @@ void VoxelMaker::ScanMaterials(const glm::ivec3 start_min, const glm::ivec3 end_
 			int material = FindMaterial(start_point, current_surface_loc, direction);
 			FillWithMaterial(material, start_point, current_surface_loc, direction);
 		}
-		if (material_count_ > (1<<27))	break;
+		if (material_count_ > (1<<20))	break;
 
 	}
-	printf("material no : %d ;\n", material_count_);
+	//printf("material no : %d ;\n", material_count_);
 	//for (int j = 0; j < height_; j++)
 	//{
 	//	for (int i = 0; i < width_; i ++)
@@ -1110,4 +1140,93 @@ void VoxelMaker::ScanMaterials(const glm::ivec3 start_min, const glm::ivec3 end_
 	//}
 
 	delete depth_ptr;
+}
+
+bool VoxelMaker::FindNotSureOnPlane(const glm::ivec3 start_min, const glm::ivec3 end_max,
+	int direction_axis, int direction_index, 
+	glm::ivec3& point_coord)
+{
+	int z_axis = direction_axis;
+	int x_axis = (direction_axis + 1) % 3;
+	int y_axix = (direction_axis + 2) % 3;
+	glm::ivec3 coord = start_min;
+	coord[z_axis] = direction_index;
+
+	for (unsigned int i = start_min[x_axis]; i <= end_max[x_axis]; i++)
+	{
+		for (unsigned int j = start_min[y_axix]; j <= end_max[y_axix]; j++)
+		{
+			coord[x_axis] = i;	coord[y_axix] = j;
+			int current_index = Find_Hash(coord.x, coord.y, coord.z);
+			if (data_buffer_loc_[current_index] == NOT_SURE)
+			{
+				point_coord = coord;
+				return true;
+			}
+		}
+	}
+	point_coord = start_min;
+	return false;
+}
+
+//hard coding....
+void VoxelMaker::FillPlane(const glm::ivec3 start_min, 
+	const glm::ivec3 end_max, int direction_axis, int direction_index)
+{
+	int z_axis = direction_axis;
+	int x_axis = (direction_axis + 1) % 3;
+	int y_axix = (direction_axis + 2) % 3;
+
+	glm::ivec3 point_0, point_1, point_2, point_3, point_4, point_5, point_6, point_7, point_8;
+	bool has_not_sure = FindNotSureOnPlane(start_min, end_max, 
+		direction_axis, direction_index, point_0);
+	while (has_not_sure)
+	{
+		point_1 = point_2 = point_3 = point_4 = point_5 = point_6 = point_7 = point_8 = point_0;
+		point_1[x_axis] = start_min[x_axis];
+		point_1[y_axix] = start_min[y_axix];
+
+		point_2[x_axis] = end_max[x_axis];
+
+		point_3[x_axis] = start_min[x_axis];
+		
+		point_4[x_axis] = end_max[x_axis];
+		point_4[y_axix] = end_max[y_axix];
+
+		point_5[y_axix] = start_min[y_axix];
+
+		point_6[y_axix] = end_max[y_axix];
+
+		point_7[x_axis] = end_max[x_axis];
+		point_7[y_axix] = start_min[y_axix];
+
+		point_8[x_axis] = start_min[x_axis];
+		point_8[y_axix] = end_max[y_axix];
+
+		ScanMaterials(point_0, point_2);
+		ScanMaterials(point_3, point_0);
+		ScanMaterials(point_0, point_6);
+		ScanMaterials(point_5, point_0);
+		ScanMaterials(point_6, point_4);
+		ScanMaterials(point_8, point_6);
+		ScanMaterials(point_1, point_5);
+		ScanMaterials(point_5, point_7);
+		ScanMaterials(point_1, point_3);
+		ScanMaterials(point_3, point_8);
+		ScanMaterials(point_7, point_2);
+		ScanMaterials(point_2, point_4);
+
+		ScanMaterials(point_3, point_6);
+		ScanMaterials(point_0, point_4);
+		ScanMaterials(point_1, point_0);
+		ScanMaterials(point_5, point_2);
+
+		ScanMaterials(point_1, point_2);
+		ScanMaterials(point_3, point_4);
+
+		ScanMaterials(point_1, point_4);
+
+		has_not_sure = FindNotSureOnPlane(start_min, end_max,
+			direction_axis, direction_index, point_0);
+	}
 }
