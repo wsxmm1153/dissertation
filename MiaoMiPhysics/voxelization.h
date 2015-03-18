@@ -5,6 +5,8 @@
 
 #include "util.h"
 #include <vector>
+#include <map>
+#include <set>
 
 class VoxelStructure
 {
@@ -36,7 +38,7 @@ private:
 	int width_;
 	int height_;
 	int depth_;
-	unsigned char* voxel_data_;
+	int* voxel_data_;
 };
 
 class VoxelMaker
@@ -54,7 +56,7 @@ public:
 	VoxelMaker();
 	virtual ~VoxelMaker();
 	//static VoxelStructure* MakeObjToVoxel(const char* obj_path, int voxel_size);
-	unsigned char* data_buffer_loc_;
+	int* data_buffer_loc_;
 	//暂时测试用
 	//float* DrawDepth(
 	//	glm::ivec3 start_min,
@@ -67,8 +69,8 @@ public:
 protected:
 	enum DepthDirection
 	{
-		XOY_MAX_Z_UP_Y = 0,
-		XOY_MIN_Z_UP_Y = 1,
+		XOY_MIN_Z_UP_Y = 0,
+		XOY_MAX_Z_UP_Y = 1,
 		YOZ_MIN_X_UP_Z =2,
 		YOZ_MAX_X_UP_Z = 3,
 		ZOX_MIN_Y_DOWN_X = 4,
@@ -85,8 +87,10 @@ protected:
 	GLuint draw_depth_program_;
 	glm::vec3 vertices_max_, vertices_min_;
 	GLfloat cell_size_;
-	int material_used_number_[256];
+	int material_used_number_[1<<20];
 	int material_count_;
+
+	int Find_Hash(const int x,const int y,const int z);
 
 	void SetSize(int size);
 	void CreatVoxel();
@@ -106,23 +110,35 @@ protected:
 
 	void VoxelizationLogical();
 	//返回不确定的个数,并且改变填充包围盒
-	int FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max);
+	bool FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max, int scan_step, int step_axis);
 	//void FindUnsureBox(glm::ivec3& start_min, glm::ivec3& end_max);
 	bool LocationDepth(DepthDirection& direction, glm::ivec3& location,
 		glm::ivec3& start_point, int depth_index, float depth_value,
 		glm::ivec3 start_min, glm::ivec3 end_max);
 	
 	//实现时注意更新material_count_
-	unsigned char FindMaterial(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
+	int FindMaterial(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
 	//start_point就是包围盒起始点，实现时计算
 	//实现时注意更新material_used_number_
-	void FillWithMaterial(unsigned char material, glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
+	void FillWithMaterial(int material, glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
 	void FillWithOutSide(glm::ivec3 start_point, glm::ivec3 end_point, DepthDirection direction);
 	void FillInsideSurface(glm::ivec3 point_index);
 
 	//carefully fill the voxel
-	void FillVoxelWith(unsigned char material, int index);
+	void FillVoxelWith(int material, int index);
+
+	void ScanMaterials(const glm::ivec3 start_min, const glm::ivec3 end_max);
+
+	//找到某个切平面上，第一个NOT_SURE的点，否则返回false
+	bool FindNotSureOnPlane(const glm::ivec3 start_min, const glm::ivec3 end_max,
+		int direction_axis, int direction_index, 
+		glm::ivec3& point_coord);
+
+	//填充平面，直到平面上不再有“NOT_SURE”
+	void FillPlane(const glm::ivec3 start_min, const glm::ivec3 end_max,
+		int direction_axis, int direction_index);
 private:
+	std::map<int, std::set<int>> material_map_;
 };
 
 #endif

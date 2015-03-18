@@ -30,7 +30,7 @@ in vec3 vVertex;\n
 in vec3 vTexcoord;\n
 uniform mat4 mv;\n
 uniform mat4 p;\n
-out vec4 vVaryingColor;\n
+smooth out vec4 vVaryingColor;\n
 void main(void)\n
 {\n
 	gl_Position = p * mv * vec4(vVertex, 1.0);\n
@@ -54,7 +54,7 @@ in vec3 vVertex;\n
 in vec3 vTexcoord;\n
 uniform mat4 mv;\n
 uniform mat4 p;\n
-out vec3 vVaryingTexCoord;\n
+smooth out vec3 vVaryingTexCoord;\n
 void main(void)\n
 {\n
 	gl_Position = p * mv * vec4(vVertex, 1.0);\n
@@ -77,25 +77,28 @@ void main(void)\n
 	vec3 back3DCoord = texture(backTex, tex2DCoord).xyz;\n
 	vec3 front3DCoord = vVaryingTexCoord;\n
 
-	vec3 len = back3DCoord - front3DCoord;\n
+	vec3 len = - back3DCoord + front3DCoord;\n
 	float step = length(len)/(1.0/256.0);\n
-	vec3 samplerStep = front3DCoord;\n
-	vec3 colorSum = vec3(0.0, 0.0, 0.0);\n
+	vec3 samplerStep = back3DCoord;\n
+	vec4 colorSum = vec4(0.0, 0.0, 0.0, 0.0);\n
 	vec4 colorStep;\n
-	float aStep = 0.0;\n
+	//float aStep = 1.0;\n
 	while (step > 0)\n
 	{\n
 		colorStep= texture(volumeTex, samplerStep);\n
-		float ascale = 0.1*colorStep.a;\n
-		colorSum = colorSum + (1.0-aStep) * ascale * colorStep.rgb;\n
-		//colorSum = colorSum + (1.0-aStep) * colorStep.rgb;\n
-		aStep = aStep + (1.0-aStep)*ascale;\n
-		if (aStep > 1.0)	break;\n
+		//colorStep.a = 0.04;\n
+
+		//colorSum.a = colorSum.a + (1.0-colorSum.a)*colorStep.a;\n
+		//colorSum = colorSum + (1.0-colorSum.a) *0.1 * colorStep;\n
+		//colorSum.a = colorSum.a + (1.0-colorSum.a)*colorStep.a;\n
+
+		colorSum = colorStep * colorStep.a + (1.0-colorStep.a) * colorSum;\n
+
 		samplerStep += normalize(len)*(1.0/256.0);\n
 		step -= 1.0;\n
 	}\n
-	//FragColor = vec4(vec3(1.0f)-back3DCoord, 1.0);\n
-	FragColor = vec4(colorSum, 1.0);\n
+	FragColor = colorSum;\n
+	//FragColor = vec4(back3DCoord, 1.0);\n
 }\n
 );
 
