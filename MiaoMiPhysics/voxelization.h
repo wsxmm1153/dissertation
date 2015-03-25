@@ -27,6 +27,7 @@ public:
 		//...
 	};
 	VoxelStructure();
+	VoxelStructure(int width, int height, int depth, unsigned char* data);
 	virtual ~VoxelStructure();
 	void get_size(int& width, int& height, int& depth)
 	{
@@ -34,11 +35,14 @@ public:
 		height = height_;
 		depth = depth_;
 	}
+
+	GLuint Creat3DTexture();
+	//void SetPackedData(unsigned char* data_loc);
 private:
 	int width_;
 	int height_;
 	int depth_;
-	int* voxel_data_;
+	unsigned char* voxel_data_;
 };
 
 class VoxelMaker
@@ -55,14 +59,14 @@ public:
 	};
 	VoxelMaker();
 	virtual ~VoxelMaker();
-	//static VoxelStructure* MakeObjToVoxel(const char* obj_path, int voxel_size);
-	int* data_buffer_loc_;
+	static VoxelStructure* MakeObjToVoxel(const char* obj_path, int voxel_size);
+	//int* data_buffer_loc_;
 	//暂时测试用
 	//float* DrawDepth(
 	//	glm::ivec3 start_min,
 	//	glm::ivec3 end_max
 	//	);
-	static VoxelMaker* MakeObjToVoxel(const char* obj_path, int voxel_size);
+	//static VoxelMaker* MakeObjToVoxel(const char* obj_path, int voxel_size);
 	static VoxelStructure* LoadVoxelFromFile(const char* voxel_path);
 	static void SaveToFile(const VoxelStructure* voxel, char* path);
 	void GetSize(int& width, int& height, int& depth) {width = width_;height = height_; depth = depth_;}
@@ -81,7 +85,7 @@ protected:
 	int width_;
 	int height_;
 	int depth_;
-	//unsigned char* data_buffer_loc_;
+	int* data_buffer_loc_;
 	std::vector<glm::vec3> vertices_;
 	GLuint vertice_buffer_handel_;
 	GLuint draw_depth_program_;
@@ -93,7 +97,9 @@ protected:
 	int Find_Hash(const int x,const int y,const int z);
 
 	void SetSize(int size);
-	void CreatVoxel();
+	//将得到的data_buffer_loc_中的内容压缩为（流体边界所需）位数据，
+	//存储在unsigned char中
+	unsigned char* CreatEasyVoxel();
 	//将某正交投影深度图保存到内存，返回内存起始地址
 	float* DrawDepth(
 		glm::ivec3 start_min,
