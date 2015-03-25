@@ -67,9 +67,10 @@ const char *rayCastingFragment = STRINGIFY(
 in vec3 vVaryingTexCoord;\n
 out vec4 FragColor;\n
 uniform sampler2D backTex;\n
-uniform sampler3D volumeTex;\n
+uniform usampler3D volumeTex;\n
 uniform int textureX;\n
 uniform int textureY;\n
+uniform int width_3d;\n
 void main(void)\n
 {\n
 	//...
@@ -85,7 +86,28 @@ void main(void)\n
 	//float aStep = 1.0;\n
 	while (step > 0)\n
 	{\n
-		colorStep= texture(volumeTex, samplerStep);\n
+		vec3 s_step = samplerStep;\n
+		//s_step.x = samplerStep.x / 2.0f;\n
+		uint inside = /*floatBitsToInt*/( texture(volumeTex, s_step).x);\n
+		////colorStep= texture(volumeTex, samplerStep);\n
+		//uint i_step = uint(floor(s_step.x));\n
+		float i_step = 1.0f / float(width_3d);
+		//uint offset = uint(1.0f / (s_step.x 
+		//	- float(floor(s_step.x / i_step)*i_step.x)));\n
+		float offset_1 = mod(s_step.x, i_step);
+		uint offset_2 = uint(floor(offset_1 * 8.0f / i_step));
+		
+		uint b_offset = 1 << (7 - offset_2);\n
+		uint is_inside = b_offset & inside;\n
+		//is_inside = (is_inside >> (b_offset-1));
+		//float cc = float(is_inside)/512.0f;
+		if (is_inside == (1 << 0))\n
+		//if (offset_2 == 7)\n
+		{\n
+		colorStep = vec4(1.0, 1.0, 1.0, 0.1);\n
+		}\n
+		else\n
+			colorStep = vec4(0.0f, 0.0f, 0.0f, 0.0f);\n
 		//colorStep.a = 0.04;\n
 
 		//colorSum.a = colorSum.a + (1.0-colorSum.a)*colorStep.a;\n
