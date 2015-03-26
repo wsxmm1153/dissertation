@@ -87,31 +87,61 @@ void main(void)\n
 	while (step > 0)\n
 	{\n
 		vec3 s_step = samplerStep;\n
-		//s_step.x = samplerStep.x / 2.0f;\n
-		uint inside = /*floatBitsToInt*/( texture(volumeTex, s_step).x);\n
-		////colorStep= texture(volumeTex, samplerStep);\n
-		//uint i_step = uint(floor(s_step.x));\n
-		float i_step = 1.0f / float(width_3d);
-		//uint offset = uint(1.0f / (s_step.x 
-		//	- float(floor(s_step.x / i_step)*i_step.x)));\n
-		float offset_1 = mod(s_step.x, i_step);
+		uint inside = /*floatBitsToUint*/( texture(volumeTex, s_step).r);\n
+
+		float i_step = 1.0f / float(width_3d/8);
+
+		float offset_1 = mod(s_step.z, i_step);
+		
 		uint offset_2 = uint(floor(offset_1 * 8.0f / i_step));
 		
-		uint b_offset = 1 << (7 - offset_2);\n
-		uint is_inside = b_offset & inside;\n
-		//is_inside = (is_inside >> (b_offset-1));
-		//float cc = float(is_inside)/512.0f;
-		if (is_inside == (1 << 0))\n
-		//if (offset_2 == 7)\n
+		uint b_offset = (1 << (7 - offset_2));\n
+		uint is_inside = (b_offset & inside);\n
+
+		//if (is_inside == (1 << 7))\n
+		if (is_inside > 0)\n
 		{\n
-		colorStep = vec4(1.0, 1.0, 1.0, 0.1);\n
+			if (offset_2 == 0)
+				colorStep = vec4(1.0, 1.0, 1.0, 0.1);\n
+			else if (offset_2 == 1)
+				colorStep = vec4(1.0, 0.0, 0.0, 0.1);\n
+			else if (offset_2 == 2)
+				colorStep = vec4(1.0, 0.5, 0.0, 0.1);\n
+			else if (offset_2 == 3)
+				colorStep = vec4(1.0, 1.0, 0.0, 0.1);\n
+			else if (offset_2 == 4)
+				colorStep = vec4(0.0, 1.0, 0.0, 0.1);\n
+			else if (offset_2 == 5)
+				colorStep = vec4(0.0, 0.0, 1.0, 0.1);\n
+			else if (offset_2 == 6)
+				colorStep = vec4(0.0, 0.5, 0.3, 0.1);\n
+			else if (offset_2 == 7)
+				colorStep = vec4(1.0, 0.0, 1.0, 0.1);\n
 		}\n
 		else\n
 			colorStep = vec4(0.0f, 0.0f, 0.0f, 0.0f);\n
-		//colorStep.a = 0.04;\n
 
-		//colorSum.a = colorSum.a + (1.0-colorSum.a)*colorStep.a;\n
-		//colorSum = colorSum + (1.0-colorSum.a) *0.1 * colorStep;\n
+		//test step
+		//if (offset_2 == 0)
+		//	colorStep = vec4(1.0, 1.0, 1.0, 0.1);\n
+		//else if (offset_2 == 1)
+		//colorStep = vec4(1.0, 0.0, 0.0, 0.1);\n
+		//else if (offset_2 == 2)
+		//colorStep = vec4(1.0, 0.5, 0.0, 0.1);\n
+		//else if (offset_2 == 3)
+		//colorStep = vec4(1.0, 1.0, 0.0, 0.1);\n
+		//else if (offset_2 == 4)
+		//colorStep = vec4(0.0, 1.0, 0.0, 0.1);\n
+		//else if (offset_2 == 5)
+		//colorStep = vec4(0.0, 0.0, 1.0, 0.1);\n
+
+		//else if (offset_2 == 6)
+		//colorStep = vec4(0.0, 0.5, 0.3, 0.1);\n
+		//else if (offset_2 == 7)
+		//colorStep = vec4(1.0, 0.0, 1.0, 0.1);\n
+
+
+		//colorSum = colorSum + (1.0-colorSum.a) * colorStep.a * colorStep;\n
 		//colorSum.a = colorSum.a + (1.0-colorSum.a)*colorStep.a;\n
 
 		colorSum = colorStep * colorStep.a + (1.0-colorStep.a) * colorSum;\n
