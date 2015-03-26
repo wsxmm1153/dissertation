@@ -33,12 +33,37 @@ VoxelStructure::VoxelStructure(int width, int height, int depth, unsigned char* 
 
 GLuint VoxelStructure::Creat3DTexture()
 {
+	//GLuint buffer_handle;
 	GLuint texture_handle;
 	glGenTextures(1, &texture_handle);
 	glBindTexture(GL_TEXTURE_3D, texture_handle);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, width_/8, height_, 3,
+	//glGenBuffers(1, &buffer_handle);
+
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer_handle);
+	//glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(GLubyte) * width_*height_*depth_/8,
+	//	voxel_data_, GL_STATIC_DRAW);
+	//glTexStorage3D(GL_TEXTURE_3D, 0, GL_R8, width_/8, height_, depth_);
+
+	//glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0,
+	//	width_/8, height_, depth_, GL_RED, GL_UNSIGNED_BYTE, 0);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, width_, height_, depth_/8,
 		0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, voxel_data_);
+
+	//GLubyte* get_back_ptr = new GLubyte[width_/8*height_*depth_];
+	//memset(get_back_ptr, 0, sizeof(GLubyte) * width_ * height_ * depth_ /8 );
+	//glGetTexImage(GL_TEXTURE_3D, 0, GL_R8UI, GL_UNSIGNED_BYTE, get_back_ptr);
 	glBindTexture(GL_TEXTURE_3D, 0);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	//for (int i = width_ *height_ / 8* 0; i < (width_*height_*depth_)/8; i++)
+	//{
+	//	printf("%c\t", get_back_ptr[i]);
+	//	if ((i+1)%(width_/8) == 0)	
+	//		printf("\n");
+	//	if ((i+1)%(width_*height_/8) == 0)	
+	//		printf("\n");
+	//}
+	//delete get_back_ptr;
 	return texture_handle;
 }
 
@@ -108,33 +133,36 @@ VoxelStructure* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 		x, y, z,
 		voxel_maker_ptr->CreatEasyVoxel());
 
-	//out to file test
-	//ofstream ofs;
-	//ofs.open("test.txt");
-	//for (int i = 0; i < x*y*z ; i ++)
-	//{
-	//	if (voxel_maker_ptr->data_buffer_loc_[i] > 10)
-	//	{
-	//		ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i])%7;
-	//	}
-	//	else
-	//		ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i]);
-	//	if ((i+1) % x == 0)
-	//	{
-	//		ofs << "\n";
-	//	}
-	//	if ((i+1) % (x*y) == 0)
-	//	{
-	//		ofs << "\n";
-	//	}
-	//	if ((i+1) % (x*y*z) == 0)
-	//	{
-	//		ofs << "\n";
-	//	}
-	//}
-	//ofs.flush();
-	//ofs.close();
+	//delete voxel_maker_ptr->data_buffer_loc_;
+
 	
+	//out to file test
+	ofstream ofs;
+	ofs.open("test.txt");
+	for (int i = 0; i < x*y*z ; i ++)
+	{
+		if (voxel_maker_ptr->data_buffer_loc_[i] > 10)
+		{
+			ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i])%7;
+		}
+		else
+			ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i]);
+		if ((i+1) % x == 0)
+		{
+			ofs << "\n";
+		}
+		if ((i+1) % (x*y) == 0)
+		{
+			ofs << "\n";
+		}
+		if ((i+1) % (x*y*z) == 0)
+		{
+			ofs << "\n";
+		}
+	}
+	ofs.flush();
+	ofs.close();
+	delete voxel_maker_ptr;
 	return voxel_structure;
 }
 
@@ -247,7 +275,14 @@ void VoxelMaker::SetSize(int size)
 	{
 		int pre_width = width_;
 		width_ = ((int)floor((float)width_ / 8.0f))*8 + 8;
-		vertices_max_ += (width_-pre_width) * cell_size_;
+		vertices_max_.x += (width_-pre_width) * cell_size_;
+	}
+
+	if (depth_ % 8)
+	{
+		int pre_width = depth_;
+		depth_ = ((int)floor((float)depth_ / 8.0f))*8 + 8;
+		vertices_max_.z += (depth_-pre_width) * cell_size_;
 	}
 
 	material_used_number_[NOT_SURE] = width_*height_*depth_;
@@ -523,6 +558,8 @@ void VoxelMaker::VoxelizationLogical()
 	//前方高能！！！
 	
 	FillVoxels(start_min, end_max, depth_, 2);
+	FillVoxels(start_min, end_max, width_, 0);
+	FillVoxels(start_min, end_max, height_, 1);
 
 	glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
 	int step = (size.y > size.x)? size.x:size.y;
@@ -535,7 +572,7 @@ void VoxelMaker::VoxelizationLogical()
 	while (((material_used_number_[NOT_SURE] > 0) || size_reducing) && (step >= 1))
 	{
 		size_reducing = true;
-		for (int i = 2; i >= 0; i--)
+		for (int i = 0; i < 3; i++)
 		{
 			if (step < 1)	break;
 			glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
@@ -1270,38 +1307,68 @@ unsigned char* VoxelMaker::CreatEasyVoxel()
 	unsigned char* data_loc = new unsigned char[width_ * height_ * depth_ / 8 
 		* sizeof(unsigned char)];
 
-	for (int i = 0; i < width_*height_*depth_/8; i++)
+	//for (int i = 0; i < width_*height_*depth_/8; i++)
+	//{
+	//	int current_material;
+	//	unsigned char easy_material;
+	//	unsigned char packed_material = 0;
+	//	for (int j = 0; j < 8; j++)
+	//	{
+	//		current_material = data_buffer_loc_[i*8 + j];
+	//		switch (current_material)
+	//		{
+	//		case OUTSIDE:
+	//			easy_material = 0;
+	//			break;
+	//		case NOT_SURE:
+	//		case INSIDE_SURFACE:
+	//		default:
+	//			easy_material = 1;
+	//			break;
+	//		}
+	//		packed_material <<= 1;
+	//		if (easy_material) {
+	//			packed_material |= easy_material;
+	//		}
+	//	}
+	//	data_loc[i] = packed_material;
+	//}
+
+	for (int d = 0; d < depth_/8; d++)
 	{
-		int current_material;
-		unsigned char easy_material;
-		unsigned char packed_material = 0;
-		for (int j = 0; j < 8; j++)
+		for (int i = 0; i < width_*height_; i ++)
 		{
-			current_material = data_buffer_loc_[i*8 + j];
-			switch (current_material)
+			int current_material;
+			unsigned char easy_material;
+			unsigned char packed_material = 0;
+			for (int j = 0; j < 8; j++)
 			{
-			case OUTSIDE:
-				easy_material = 0;
-				break;
-			case NOT_SURE:
-			case INSIDE_SURFACE:
-			default:
-				easy_material = 1;
-				break;
+				current_material = data_buffer_loc_[i + (j+8*d)*width_*height_];
+				switch (current_material)
+				{
+				case OUTSIDE:
+					easy_material = 0;
+					break;
+				case NOT_SURE:
+				case INSIDE_SURFACE:
+				default:
+					easy_material = 1;
+					break;
+				}
+				packed_material <<= 1;
+				if (easy_material) {
+					packed_material |= easy_material;
+				}
 			}
-			packed_material <<= 1;
-			if (easy_material) {
-				packed_material |= easy_material;
-			}
+			data_loc[i+width_*height_*d] = packed_material;
 		}
-		data_loc[i] = packed_material;
 	}
 	//delete data_buffer_loc_;
-	for (int i = 0; i < width_*height_*depth_/8; i++)
-	{
-		printf("%d\t", data_loc[i]);
-		if ((i+1)%(width_/8) == 0)	printf("\n");
-		if ((i+1)%(width_*height_/8) == 0)	printf("\n");
-	}
+	//for (int i = 0; i < width_*height_*depth_/8; i++)
+	//{
+	//	printf("%d\t", data_loc[i]);
+	//	if ((i+1)%(width_/8) == 0)	printf("\n");
+	//	if ((i+1)%(width_*height_/8) == 0)	printf("\n");
+	//}
 	return data_loc;
 }
