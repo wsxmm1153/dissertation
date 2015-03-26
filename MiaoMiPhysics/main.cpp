@@ -86,7 +86,7 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("2.obj", 711);
+	voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("2.obj", 128);
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
