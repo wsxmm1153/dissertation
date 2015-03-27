@@ -557,9 +557,9 @@ void VoxelMaker::VoxelizationLogical()
 	
 	//前方高能！！！
 	
-	FillVoxels(start_min, end_max, depth_, 2);
 	FillVoxels(start_min, end_max, width_, 0);
 	FillVoxels(start_min, end_max, height_, 1);
+	FillVoxels(start_min, end_max, depth_, 2);
 
 	glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
 	int step = (size.y > size.x)? size.x:size.y;
