@@ -162,6 +162,7 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="glincludes.h" />
     <ClInclude Include="shader.h" />
+    <ClInclude Include="sphsimulator.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="volumeRenderer.h" />
     <ClInclude Include="voxelization.h" />
@@ -169,6 +170,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
+    <ClCompile Include="sphsimulator.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="volumeRenderer.cpp" />
     <ClCompile Include="voxelization.cpp" />
