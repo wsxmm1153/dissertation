@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <fstream>
 
+#pragma warning(disable:4996)
+
 VoxelStructure::VoxelStructure():
 	width_(0),
 	height_(0),
@@ -16,7 +18,53 @@ VoxelStructure::VoxelStructure():
 
 VoxelStructure::~VoxelStructure()
 {
+	if (voxel_data_)
+		delete voxel_data_;
+}
 
+VoxelStructure::VoxelStructure(int width, int height, int depth, unsigned char* data)
+	:width_(width),
+	height_(height),
+	depth_(depth),
+	voxel_data_(data)
+{
+
+}
+
+GLuint VoxelStructure::Creat3DTexture()
+{
+	//GLuint buffer_handle;
+	GLuint texture_handle;
+	glGenTextures(1, &texture_handle);
+	glBindTexture(GL_TEXTURE_3D, texture_handle);
+	//glGenBuffers(1, &buffer_handle);
+
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer_handle);
+	//glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(GLubyte) * width_*height_*depth_/8,
+	//	voxel_data_, GL_STATIC_DRAW);
+	//glTexStorage3D(GL_TEXTURE_3D, 0, GL_R8, width_/8, height_, depth_);
+
+	//glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0,
+	//	width_/8, height_, depth_, GL_RED, GL_UNSIGNED_BYTE, 0);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, width_, height_, depth_/8,
+		0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, voxel_data_);
+
+	//GLubyte* get_back_ptr = new GLubyte[width_/8*height_*depth_];
+	//memset(get_back_ptr, 0, sizeof(GLubyte) * width_ * height_ * depth_ /8 );
+	//glGetTexImage(GL_TEXTURE_3D, 0, GL_R8UI, GL_UNSIGNED_BYTE, get_back_ptr);
+	glBindTexture(GL_TEXTURE_3D, 0);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	//for (int i = width_ *height_ / 8* 0; i < (width_*height_*depth_)/8; i++)
+	//{
+	//	printf("%c\t", get_back_ptr[i]);
+	//	if ((i+1)%(width_/8) == 0)	
+	//		printf("\n");
+	//	if ((i+1)%(width_*height_/8) == 0)	
+	//		printf("\n");
+	//}
+	//delete get_back_ptr;
+	return texture_handle;
 }
 
 VoxelMaker::VoxelMaker():
@@ -50,7 +98,44 @@ VoxelMaker::~VoxelMaker()
 	}
 }
 
-VoxelMaker* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
+void VoxelMaker::SaveToFile(const VoxelStructure* voxel, char* path)
+{
+	ofstream ofs;
+	ofs.open(path);
+	ofs << (voxel->width_) << " "
+		<< (voxel->height_) << " "
+		<< (voxel->depth_) << "\n";
+
+	for (int i = 0; i < (voxel->width_)*(voxel->height_)*(voxel->depth_)/8; i++ )
+	{
+		ofs << (int)voxel->voxel_data_[i] << " ";
+	}
+
+	ofs.flush();
+	ofs.close();
+}
+
+VoxelStructure* VoxelMaker::LoadVoxelFromFile(const char* voxel_path)
+{
+	ifstream ifs;
+	int width, height, depth;
+	ifs.open(voxel_path);
+	char enter;
+	ifs >> width >> height >> depth /*>> enter*/;
+
+	unsigned char* data_ptr 
+		= new unsigned char[sizeof(unsigned char) * width * height * depth/8];
+	for (int i = 0; i < width*height*depth/8; i++)
+	{
+		int char_int;
+		ifs >> char_int;
+		data_ptr[i] = (unsigned char)char_int;
+	}
+	VoxelStructure* voxtel_s_ptr = new VoxelStructure(width, height, depth, data_ptr);
+	return voxtel_s_ptr;
+}
+
+VoxelStructure* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 {
 	VoxelMaker* voxel_maker_ptr = new VoxelMaker();
 
@@ -81,35 +166,41 @@ VoxelMaker* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 	//test
 	voxel_maker_ptr->VoxelizationLogical();
 
+	VoxelStructure* voxel_structure = new VoxelStructure(
+		x, y, z,
+		voxel_maker_ptr->CreatEasyVoxel());
+
+	//delete voxel_maker_ptr->data_buffer_loc_;
+
+	
 	//out to file test
-	/*voxel_maker_ptr->data_buffer_loc_*/
-	ofstream ofs;
-	ofs.open("test.txt");
-	for (int i = 0; i < x*y*z ; i ++)
-	{
-		if (voxel_maker_ptr->data_buffer_loc_[i] > 10)
-		{
-			ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i])%7;
-		}
-		else
-			ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i]);
-		if ((i+1) % x == 0)
-		{
-			ofs << "\n";
-		}
-		if ((i+1) % (x*y) == 0)
-		{
-			ofs << "\n";
-		}
-		if ((i+1) % (x*y*z) == 0)
-		{
-			ofs << "\n";
-		}
-	}
-	ofs.flush();
-	ofs.close();
-	//暂定
-	return voxel_maker_ptr;
+	//ofstream ofs;
+	//ofs.open("test.txt");
+	//for (int i = 0; i < x*y*z ; i ++)
+	//{
+	//	if (voxel_maker_ptr->data_buffer_loc_[i] > 10)
+	//	{
+	//		ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i])%7;
+	//	}
+	//	else
+	//		ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i]);
+	//	if ((i+1) % x == 0)
+	//	{
+	//		ofs << "\n";
+	//	}
+	//	if ((i+1) % (x*y) == 0)
+	//	{
+	//		ofs << "\n";
+	//	}
+	//	if ((i+1) % (x*y*z) == 0)
+	//	{
+	//		ofs << "\n";
+	//	}
+	//}
+	//ofs.flush();
+	//ofs.close();
+	delete voxel_maker_ptr;
+	return voxel_structure;
 }
 
 void VoxelMaker::FindBoundingBox()
@@ -216,6 +307,21 @@ void VoxelMaker::SetSize(int size)
 	depth_ += 2;
 	vertices_min_ -= glm::vec3(cell_size_, cell_size_, cell_size_);
 	vertices_max_ += glm::vec3(cell_size_, cell_size_, cell_size_);
+
+	if (width_ % 8)
+	{
+		int pre_width = width_;
+		width_ = ((int)floor((float)width_ / 8.0f))*8 + 8;
+		vertices_max_.x += (width_-pre_width) * cell_size_;
+	}
+
+	if (depth_ % 8)
+	{
+		int pre_width = depth_;
+		depth_ = ((int)floor((float)depth_ / 8.0f))*8 + 8;
+		vertices_max_.z += (depth_-pre_width) * cell_size_;
+	}
+
 	material_used_number_[NOT_SURE] = width_*height_*depth_;
 }
 
@@ -488,6 +594,8 @@ void VoxelMaker::VoxelizationLogical()
 	
 	//前方高能！！！
 	
+	FillVoxels(start_min, end_max, width_, 0);
+	FillVoxels(start_min, end_max, height_, 1);
 	FillVoxels(start_min, end_max, depth_, 2);
 
 	glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
@@ -501,7 +609,7 @@ void VoxelMaker::VoxelizationLogical()
 	while (((material_used_number_[NOT_SURE] > 0) || size_reducing) && (step >= 1))
 	{
 		size_reducing = true;
-		for (int i = 2; i >= 0; i--)
+		for (int i = 0; i < 3; i++)
 		{
 			if (step < 1)	break;
 			glm::ivec3 size = end_max - start_min + glm::ivec3(1, 1, 1);
@@ -514,11 +622,12 @@ void VoxelMaker::VoxelizationLogical()
 				step = step_init;
 			
 			size_reducing &= FillVoxels(start_min, end_max, step, i);
-			printf("step : %d, material number : %d, not sure number: %d\n", step, material_count_,
-				material_used_number_[NOT_SURE]);
 			step --;
 		}
 	}
+	FillVoxels(start_min, end_max, 1, 0);
+	FillVoxels(start_min, end_max, 1, 1);
+	FillVoxels(start_min, end_max, 1, 2);
 }
 
 const glm::ivec3 Forward_Sum[6] = 
@@ -599,6 +708,10 @@ bool VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max,
 		}
 
 	}
+
+	printf("step : %d, material number : %d, not sure number: %d\n", scan_step, material_count_,
+		material_used_number_[NOT_SURE]);
+
 	bool size_reducing = true;
 	bool material_changing = true;
 	if (material_count_current - material_count_ == 0)
@@ -610,7 +723,7 @@ bool VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max,
 		return false;
 	start_min = start_min_t;
 	end_max = end_max_t;
-	
+
 	return size_reducing || material_changing;
 }
 
@@ -698,7 +811,7 @@ bool VoxelMaker::LocationDepth(DepthDirection& direction, glm::ivec3& location,
 		{
 			location = start_point/* + Forward_Sum[direction]*/;
 		}
-		if (depth_count == current_size[(direction/2 + 2)%3])
+		else if (depth_count == current_size[(direction/2 + 2)%3])
 		{
 			location = end_point/* + Forward_Sum[direction]*/;
 		}
@@ -1152,9 +1265,9 @@ bool VoxelMaker::FindNotSureOnPlane(const glm::ivec3 start_min, const glm::ivec3
 	glm::ivec3 coord = start_min;
 	coord[z_axis] = direction_index;
 
-	for (unsigned int i = start_min[x_axis]; i <= end_max[x_axis]; i++)
+	for (int i = start_min[x_axis]; i <= end_max[x_axis]; i++)
 	{
-		for (unsigned int j = start_min[y_axix]; j <= end_max[y_axix]; j++)
+		for (int j = start_min[y_axix]; j <= end_max[y_axix]; j++)
 		{
 			coord[x_axis] = i;	coord[y_axix] = j;
 			int current_index = Find_Hash(coord.x, coord.y, coord.z);
@@ -1229,4 +1342,75 @@ void VoxelMaker::FillPlane(const glm::ivec3 start_min,
 		has_not_sure = FindNotSureOnPlane(start_min, end_max,
 			direction_axis, direction_index, point_0);
 	}
+}
+
+unsigned char* VoxelMaker::CreatEasyVoxel()
+{
+	unsigned char* data_loc = new unsigned char[width_ * height_ * depth_ / 8 
+		* sizeof(unsigned char)];
+
+	//for (int i = 0; i < width_*height_*depth_/8; i++)
+	//{
+	//	int current_material;
+	//	unsigned char easy_material;
+	//	unsigned char packed_material = 0;
+	//	for (int j = 0; j < 8; j++)
+	//	{
+	//		current_material = data_buffer_loc_[i*8 + j];
+	//		switch (current_material)
+	//		{
+	//		case OUTSIDE:
+	//			easy_material = 0;
+	//			break;
+	//		case NOT_SURE:
+	//		case INSIDE_SURFACE:
+	//		default:
+	//			easy_material = 1;
+	//			break;
+	//		}
+	//		packed_material <<= 1;
+	//		if (easy_material) {
+	//			packed_material |= easy_material;
+	//		}
+	//	}
+	//	data_loc[i] = packed_material;
+	//}
+
+	for (int d = 0; d < depth_/8; d++)
+	{
+		for (int i = 0; i < width_*height_; i ++)
+		{
+			int current_material;
+			unsigned char easy_material;
+			unsigned char packed_material = 0;
+			for (int j = 0; j < 8; j++)
+			{
+				current_material = data_buffer_loc_[i + (j+8*d)*width_*height_];
+				switch (current_material)
+				{
+				case OUTSIDE:
+					easy_material = 0;
+					break;
+				case NOT_SURE:
+				case INSIDE_SURFACE:
+				default:
+					easy_material = 1;
+					break;
+				}
+				packed_material <<= 1;
+				if (easy_material) {
+					packed_material |= easy_material;
+				}
+			}
+			data_loc[i+width_*height_*d] = packed_material;
+		}
+	}
+	//delete data_buffer_loc_;
+	//for (int i = 0; i < width_*height_*depth_/8; i++)
+	//{
+	//	printf("%d\t", data_loc[i]);
+	//	if ((i+1)%(width_/8) == 0)	printf("\n");
+	//	if ((i+1)%(width_*height_/8) == 0)	printf("\n");
+	//}
+	return data_loc;
 }
