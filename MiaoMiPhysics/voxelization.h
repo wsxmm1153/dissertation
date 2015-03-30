@@ -11,6 +11,7 @@
 class VoxelStructure
 {
 public:
+	friend class VoxelMaker;
 	enum VoxelState
 	{
 		NOT_SURE = 0,
