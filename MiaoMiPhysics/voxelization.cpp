@@ -98,6 +98,43 @@ VoxelMaker::~VoxelMaker()
 	}
 }
 
+void VoxelMaker::SaveToFile(const VoxelStructure* voxel, char* path)
+{
+	ofstream ofs;
+	ofs.open(path);
+	ofs << (voxel->width_) << " "
+		<< (voxel->height_) << " "
+		<< (voxel->depth_) << "\n";
+
+	for (int i = 0; i < (voxel->width_)*(voxel->height_)*(voxel->depth_)/8; i++ )
+	{
+		ofs << (int)voxel->voxel_data_[i] << " ";
+	}
+
+	ofs.flush();
+	ofs.close();
+}
+
+VoxelStructure* VoxelMaker::LoadVoxelFromFile(const char* voxel_path)
+{
+	ifstream ifs;
+	int width, height, depth;
+	ifs.open(voxel_path);
+	char enter;
+	ifs >> width >> height >> depth /*>> enter*/;
+
+	unsigned char* data_ptr 
+		= new unsigned char[sizeof(unsigned char) * width * height * depth/8];
+	for (int i = 0; i < width*height*depth/8; i++)
+	{
+		int char_int;
+		ifs >> char_int;
+		data_ptr[i] = (unsigned char)char_int;
+	}
+	VoxelStructure* voxtel_s_ptr = new VoxelStructure(width, height, depth, data_ptr);
+	return voxtel_s_ptr;
+}
+
 VoxelStructure* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 {
 	VoxelMaker* voxel_maker_ptr = new VoxelMaker();
@@ -137,31 +174,31 @@ VoxelStructure* VoxelMaker::MakeObjToVoxel(const char* obj_path, int voxel_size)
 
 	
 	//out to file test
-	ofstream ofs;
-	ofs.open("test.txt");
-	for (int i = 0; i < x*y*z ; i ++)
-	{
-		if (voxel_maker_ptr->data_buffer_loc_[i] > 10)
-		{
-			ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i])%7;
-		}
-		else
-			ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i]);
-		if ((i+1) % x == 0)
-		{
-			ofs << "\n";
-		}
-		if ((i+1) % (x*y) == 0)
-		{
-			ofs << "\n";
-		}
-		if ((i+1) % (x*y*z) == 0)
-		{
-			ofs << "\n";
-		}
-	}
-	ofs.flush();
-	ofs.close();
+	//ofstream ofs;
+	//ofs.open("test.txt");
+	//for (int i = 0; i < x*y*z ; i ++)
+	//{
+	//	if (voxel_maker_ptr->data_buffer_loc_[i] > 10)
+	//	{
+	//		ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i])%7;
+	//	}
+	//	else
+	//		ofs << (int)(voxel_maker_ptr->data_buffer_loc_[i]);
+	//	if ((i+1) % x == 0)
+	//	{
+	//		ofs << "\n";
+	//	}
+	//	if ((i+1) % (x*y) == 0)
+	//	{
+	//		ofs << "\n";
+	//	}
+	//	if ((i+1) % (x*y*z) == 0)
+	//	{
+	//		ofs << "\n";
+	//	}
+	//}
+	//ofs.flush();
+	//ofs.close();
 	delete voxel_maker_ptr;
 	return voxel_structure;
 }
@@ -585,11 +622,12 @@ void VoxelMaker::VoxelizationLogical()
 				step = step_init;
 			
 			size_reducing &= FillVoxels(start_min, end_max, step, i);
-			printf("step : %d, material number : %d, not sure number: %d\n", step, material_count_,
-				material_used_number_[NOT_SURE]);
 			step --;
 		}
 	}
+	FillVoxels(start_min, end_max, 1, 0);
+	FillVoxels(start_min, end_max, 1, 1);
+	FillVoxels(start_min, end_max, 1, 2);
 }
 
 const glm::ivec3 Forward_Sum[6] = 
@@ -670,6 +708,10 @@ bool VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max,
 		}
 
 	}
+
+	printf("step : %d, material number : %d, not sure number: %d\n", scan_step, material_count_,
+		material_used_number_[NOT_SURE]);
+
 	bool size_reducing = true;
 	bool material_changing = true;
 	if (material_count_current - material_count_ == 0)
@@ -681,7 +723,7 @@ bool VoxelMaker::FillVoxels(glm::ivec3& start_min, glm::ivec3& end_max,
 		return false;
 	start_min = start_min_t;
 	end_max = end_max_t;
-	
+
 	return size_reducing || material_changing;
 }
 

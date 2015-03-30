@@ -77,6 +77,8 @@ bool loadTextures() {
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
+	//VoxelMaker::SaveToFile(voxel_struct_ptr, ".\\voxelfiles\\jessi_voxel_768.txt");
+
 	return true;
 }
 
@@ -86,7 +88,8 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("jessi.obj", 512);
+	//voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("jessi.obj", 768);
+	voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\jessi_voxel_768.txt");
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
