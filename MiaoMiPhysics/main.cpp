@@ -77,7 +77,7 @@ bool loadTextures() {
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-	//VoxelMaker::SaveToFile(voxel_struct_ptr, ".\\voxelfiles\\jessi_voxel_768.txt");
+	//VoxelMaker::SaveToFile(voxel_struct_ptr, ".\\voxelfiles\\earth_voxel_1024.txt");
 
 	return true;
 }
@@ -88,8 +88,8 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	//voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("jessi.obj", 768);
-	voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\jessi_voxel_768.txt");
+	//voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("earth.obj", 1024);
+	voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\earth_voxel_512.txt");
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
@@ -129,7 +129,6 @@ int main(int argc, char** argv)
 	glutInitWindowPosition(0, 0);
 	glutCreateWindow(argv[0]);
 	init();
-
 	glutDisplayFunc(display);
 	cameraLoop();
 
