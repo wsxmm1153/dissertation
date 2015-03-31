@@ -1242,7 +1242,7 @@ void VoxelMaker::ScanMaterials(const glm::ivec3 start_min, const glm::ivec3 end_
 		if (material_count_ > (1<<20))	break;
 
 	}
-	//printf("material no : %d ;\n", material_count_);
+	printf("material no : %d ;\n", material_count_);
 	//for (int j = 0; j < height_; j++)
 	//{
 	//	for (int i = 0; i < width_; i ++)
