@@ -164,6 +164,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="constantdata.h" />
+    <ClInclude Include="fluidRenderer.h" />
     <ClInclude Include="glincludes.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="sphsimulator.h" />
@@ -172,6 +174,7 @@
     <ClInclude Include="voxelization.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="fluidRenderer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="sphsimulator.cpp" />
