@@ -89,7 +89,7 @@ void init(void)
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
 	//voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("earth.obj", 1024);
-	voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\earth_voxel_512.txt");
+	voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\earth_voxel_128.txt");
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
