@@ -19,10 +19,13 @@ extern const char* rayCastingVertex;
 extern const char* rayCastingFragment;
 extern const char* drawDepthVertex;
 extern const char* drawDepthFragment;
+extern const char* sphSimulatorComputer;
 
 #include <GL/glew.h>
 #include <stdio.h>
 
 GLuint compileProgram(const char* vertexSrc, const char* fragmentSrc);
+
+GLuint compileComputer(const char* computeShaderStr);
 
 #endif

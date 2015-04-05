@@ -366,6 +366,7 @@ void VolumeRenderer::_draw_volume()
 	glUniformMatrix4fv(mvLocation, 1, GL_FALSE, glm::value_ptr(*_mv_matrix));
 	glUniform1i(glGetUniformLocation(_draw_program, "textureX"), _screen_width);
 	glUniform1i(glGetUniformLocation(_draw_program, "textureY"), _screen_height);
+	glUniform1i(glGetUniformLocation(_draw_program, "width_3d"), depth_);
 
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, 0);
 
