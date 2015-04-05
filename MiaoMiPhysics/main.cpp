@@ -148,7 +148,7 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("2.obj", 290);
+	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("earth.obj", 128);
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
