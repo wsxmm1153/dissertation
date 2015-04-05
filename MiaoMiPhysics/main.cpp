@@ -88,12 +88,8 @@ void init(void)
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
-<<<<<<< HEAD
-	voxel_maker_ptr_s = VoxelMaker::MakeObjToVoxel("earth.obj", 128);
-=======
 	//voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("earth.obj", 1024);
 	voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\earth_voxel_128.txt");
->>>>>>> xmm_notebook
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
