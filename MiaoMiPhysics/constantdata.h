@@ -23,6 +23,6 @@
 #define BOUNDARY 0.3f
 #define INIT_CUBE 0.55f
 
-#define NUM 16384*2
+#define NUM 16384
 
 #endif

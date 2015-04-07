@@ -26,7 +26,7 @@ void SPHParticles::InitGPUResource(int particle_number)
 {
 	particle_number_ = particle_number;
 	glGenBuffers(1, &positions_vbo_);
-	glGenBuffers(1, &positions_tbo_);
+	glGenBuffers(1, &velocitys_vbo_);
 	glGenTextures(1, &positions_tbo_);
 	glGenTextures(1, &velocitys_tbo_);
 
@@ -48,7 +48,8 @@ SimulateDrawGrid::SimulateDrawGrid()
 	grid_y_(0),
 	grid_z_(0),
 	grid_head_tbo(0),
-	grid_count_tbo(0)
+	grid_count_tbo(0),
+	grid_pbo_(0)
 {
 
 }
@@ -67,26 +68,24 @@ void SimulateDrawGrid::InitGPUResource(const glm::ivec3 size_3d)
 	grid_y_ = size_3d.y;
 	grid_z_ = size_3d.z;
 
-	GLint* init_data
-		= new GLint[grid_x_*grid_y_*grid_z_*sizeof(GLint)];
-	memset(init_data, 0, grid_x_*grid_y_*grid_z_*sizeof(GLint));
-
 	glGenTextures(1, &grid_head_tbo);
 	glBindTexture(GL_TEXTURE_3D, grid_head_tbo);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, 
-		grid_x_, grid_y_, grid_z_, 0,
-
-		GL_RED_INTEGER, GL_INT, (GLvoid*)init_data);
+	glTexStorage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_);
 	glBindTexture(GL_TEXTURE_3D, 0);
 
 	glGenTextures(1, &grid_count_tbo);
 	glBindTexture(GL_TEXTURE_3D, grid_count_tbo);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, 
-		grid_x_, grid_y_, grid_z_, 0,
-		GL_RED_INTEGER, GL_INT, (GLvoid*)init_data);
+	glTexStorage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_);
 	glBindTexture(GL_TEXTURE_3D, 0);
 
-	delete init_data;
+	glGenBuffers(1, &grid_pbo_);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, grid_pbo_);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(GLint)*grid_x_*grid_y_*grid_z_, 
+		0, GL_STATIC_DRAW);
+	GLint* data_ptr = (GLint*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+	memset(data_ptr, 0xff, sizeof(GLint)*grid_x_*grid_y_*grid_z_);
+	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
 
 SPHSimulator::SPHSimulator()
@@ -120,7 +119,7 @@ void SPHSimulator::InitGPUResource(const int particle_number,
 	size_x_ = scene_size.x;
 	size_y_ = scene_size.y;
 	size_z_ = scene_size.z;
-	smooth_length_ = smooth_length_;
+	smooth_length_ = smooth_length;
 	gpu_particles_ptr_ = new SPHParticles();
 	gpu_grid_ptr_ = new SimulateDrawGrid();
 	gpu_particles_ptr_->InitGPUResource(particle_number);
@@ -133,7 +132,8 @@ void SPHSimulator::InitGPUResource(const int particle_number,
 	size_y_ = (float)grid_y * smooth_length_;
 	size_z_ = (float)grid_z * smooth_length_;
 
-	gpu_grid_ptr_->InitGPUResource(glm::ivec3(grid_x, grid_y, grid_z));
+	gpu_grid_ptr_->InitGPUResource(glm::ivec3(grid_x,
+		grid_y, grid_z));
 }
 
 void SPHSimulator::InitSimulation()
@@ -178,38 +178,32 @@ void SPHSimulator::InitSimulation()
 	glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->velocitys_vbo_);
 	glBufferData(GL_ARRAY_BUFFER, x_*y_*z_*4*sizeof(GLfloat), init_float_v, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	delete init_float_v;
+	delete init_float_p;
 }
 
 void SPHSimulator::display(float time_step)
 {
 	//reset grid count
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gpu_grid_ptr_->grid_pbo_);
 	glBindTexture(GL_TEXTURE_3D, gpu_grid_ptr_->grid_count_tbo);
-	GLint* init_data
-		= new GLint[gpu_grid_ptr_->grid_x_
-		*gpu_grid_ptr_->grid_y_
-		*gpu_grid_ptr_->grid_z_
-		*sizeof(GLint)];
-	memset(init_data, 0, gpu_grid_ptr_->grid_x_
-		*gpu_grid_ptr_->grid_y_
-		*gpu_grid_ptr_->grid_z_
-		*sizeof(GLint));
 
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, 
-		gpu_grid_ptr_->grid_x_, gpu_grid_ptr_->grid_y_, 
-		gpu_grid_ptr_->grid_z_, 0,
-		GL_RED_INTEGER, GL_INT, (GLvoid*)init_data);
+	glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0,
+		gpu_grid_ptr_->grid_x_,
+		gpu_grid_ptr_->grid_y_,
+		gpu_grid_ptr_->grid_z_, 
+		GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
 	glBindTexture(GL_TEXTURE_3D, 0);
-	delete init_data;
 
 	glUseProgram(simulator_program_);
-	glBindImageTexture(0, gpu_particles_ptr_->positions_tbo_,
+	glBindImageTexture(2, gpu_particles_ptr_->positions_tbo_,
 		0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-	glBindImageTexture(1, gpu_particles_ptr_->velocitys_tbo_,
+	glBindImageTexture(3, gpu_particles_ptr_->velocitys_tbo_,
 		0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-	glBindImageTexture(2, gpu_grid_ptr_->grid_head_tbo,
+	glBindImageTexture(0, gpu_grid_ptr_->grid_head_tbo,
 		0, GL_FALSE, 0, GL_READ_WRITE, GL_R32I);
-	glBindImageTexture(3, gpu_grid_ptr_->grid_count_tbo,
-		0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	glBindImageTexture(1, gpu_grid_ptr_->grid_count_tbo,
+		0, GL_FALSE, 0, GL_READ_WRITE, GL_R32I);
 
 	GLint uniform_loc;
 	uniform_loc = glGetUniformLocation(simulator_program_, "time_step");
@@ -219,7 +213,8 @@ void SPHSimulator::display(float time_step)
 	glUniform1f(uniform_loc, SMOOTH_LENGTH);
 
 	uniform_loc = glGetUniformLocation(simulator_program_, "grid_size");
-	glUniform3i(simulator_program_, gpu_grid_ptr_->grid_x_,
+	glUniform3i(simulator_program_,
+		gpu_grid_ptr_->grid_x_,
 		gpu_grid_ptr_->grid_y_,
 		gpu_grid_ptr_->grid_z_);
 
@@ -240,7 +235,7 @@ void SPHSimulator::display(float time_step)
 	glUniform1f(uniform_loc, factors);
 
 	uniform_loc = glGetUniformLocation(simulator_program_, "a_outside");
-	glUniform3f(uniform_loc, 0.0f, -9.8f, 0.0f);
+	glUniform3f(uniform_loc, 1.0f, -9.8f, 0.0f);
 
 	glDispatchCompute(NUM, 1, 1);
 	
