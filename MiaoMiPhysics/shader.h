@@ -20,6 +20,8 @@ extern const char* rayCastingFragment;
 extern const char* drawDepthVertex;
 extern const char* drawDepthFragment;
 extern const char* sphSimulatorComputer;
+extern const char* pointSpriteVertexShader;
+extern const char* pointSpriteFragmentShader;
 
 #include <GL/glew.h>
 #include <stdio.h>

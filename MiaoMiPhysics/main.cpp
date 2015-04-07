@@ -3,9 +3,13 @@
 #include <stdio.h>
 #include "volumeRenderer.h"
 #include "voxelization.h"
+#include "fluidRenderer.h"
+#include "sphsimulator.h"
 
 //static VoxelMaker* voxel_maker_ptr_s;
-static VoxelStructure* voxel_struct_ptr;
+//static VoxelStructure* voxel_struct_ptr;
+static SPHSimulator* simulator_ptr;
+static FluidRenderer* renderer_ptr;
 static GLuint texName;
 static int _x,_y,_z;
 //box and its index
@@ -66,16 +70,16 @@ bool loadTextures() {
 	bool ok = (size == fread(pVolume,sizeof(unsigned char), size,pFile));
 	fclose(pFile);*/	
 	
-	voxel_struct_ptr->get_size(_x, _y, _z);
+	//voxel_struct_ptr->get_size(_x, _y, _z);
 
-	texName = voxel_struct_ptr->Creat3DTexture();
+	//texName = voxel_struct_ptr->Creat3DTexture();
 
-	glBindTexture(GL_TEXTURE_3D, texName);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glBindTexture(GL_TEXTURE_3D, texName);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	//VoxelMaker::SaveToFile(voxel_struct_ptr, ".\\voxelfiles\\earth_voxel_1024.txt");
 
@@ -85,16 +89,27 @@ bool loadTextures() {
 void init(void)
 {
 	glewInit();
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glShadeModel(GL_SMOOTH);
+	//glClearColor(0.0, 0.0, 0.0, 0.0);
+	//glShadeModel(GL_SMOOTH);
 	/***************test voxel maker*************************/
 	//voxel_struct_ptr = VoxelMaker::MakeObjToVoxel("earth.obj", 1024);
-	voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\earth_voxel_128.txt");
+	//voxel_struct_ptr = VoxelMaker::LoadVoxelFromFile(".\\voxelfiles\\rabbit_voxel_256.txt");
 	/***************test voxel maker*************************/
 
 	/***************test renderer*************************/
-	loadTextures();
+	//loadTextures();
 	/***************test renderer*************************/
+
+	/***************test simulator*************************/
+	simulator_ptr = new SPHSimulator();
+	
+	simulator_ptr->InitGPUResource(NUM, glm::vec3(1.0f, 1.0f, 1.0f),
+		SMOOTH_LENGTH);
+	simulator_ptr->InitSimulation();
+	GLuint pos_vbo = simulator_ptr->gpu_particles_ptr_->positions_vbo();
+	renderer_ptr = new FluidRenderer(pos_vbo);
+	renderer_ptr->InitPointDraw();
+	/***************test simulator*************************/
 }
 
 void display()
@@ -102,12 +117,12 @@ void display()
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	/***************test renderer*************************/
 	cameraDisplay();
-	glm::mat4 mv = View * Model;
-	glm::mat4 p = Projection;
+	//glm::mat4 mv = View * Model;
+	//glm::mat4 p = Projection;
 	//int _x,_y,_z;
 	//voxel_maker_ptr_s->GetSize(_x, _y, _z);
 	//VolumeRenderer::drawPhysicsWorld(texName, &mv, &p,XMAX, YMAX, ZMAX);
-	VolumeRenderer::drawPhysicsWorld(texName, &mv, &p,_x, _y, _z);
+	//VolumeRenderer::drawPhysicsWorld(texName, &mv, &p,_x, _y, _z);
 	/***************test renderer*************************/
 
 	/***************test voxel maker*************************/
@@ -116,6 +131,16 @@ void display()
 	//voxel_maker_ptr_s->DrawDepth(glm::ivec3(0, 0, 0), glm::ivec3(_x, _y, _z));
 	/***************test voxel maker*************************/
 
+	/***************test simulator*************************/
+	glm::mat4 model = glm::scale(Model, glm::vec3(2.0f, 2.0f, 2.0f));
+	model = glm::translate(model, glm::vec3(-0.25f, -0.25f, -0.25f));
+	glm::mat4 mv = View * model;
+	
+	glm::mat4 p = Projection;
+	simulator_ptr->display(TIME_STEP);
+	renderer_ptr->DrawPoints(&mv, &p);
+	/***************test simulator*************************/
+	//glutWireCube(1.0f);
 	glutPostRedisplay();
 	glutSwapBuffers();
 }
