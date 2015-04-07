@@ -188,13 +188,13 @@ FragColor = vec4(/*(z_value+1.0f)/2.0f*/gl_FragCoord.z
 );
 
 const char *sphSimulatorComputer = STRINGIFY(
-#version 430\n
-layout (local_size_x = 128) in;
+#version 450\n
+layout (local_size_x = 1) in;
 layout (rgba32f, binding = 2) uniform imageBuffer position_image;
 layout (rgba32f, binding = 3) uniform imageBuffer velocity_image;
-layout (r32i, binding = 0) uniform iimage3D grid_image_head;
-layout (r32i, binding = 1) uniform iimage3D grid_image_count;
-//unifrom usampler3D scene_voxel_texture; later:collision ditection.
+layout (r32i, binding = 0) uniform coherent iimageBuffer grid_image_head;
+layout (r32i, binding = 1) uniform coherent iimageBuffer grid_image_count;
+
 uniform float time_step;
 uniform float smooth_length;
 uniform ivec3 grid_size;
@@ -203,6 +203,13 @@ uniform float press_factor;
 uniform float a_smooth_factor;
 uniform float viscosity;
 uniform vec3 a_outside;
+
+int grid_hash(const int x, const int y, const int z)
+{
+	int hash_val = x + y * grid_size.x + z * grid_size.x * grid_size.y;
+	return hash_val;
+}
+
 void main(void)\n
 {\n
 	int item_index = int(gl_GlobalInvocationID.x);
@@ -211,119 +218,160 @@ void main(void)\n
 
 	/*********1 init grid(positions)*************************/
 	vec4 grid_hashf = position / smooth_length;
-	grid_hashf = floor(grid_hashf);
+	vec4 grid_hash_floor = grid_hashf;
+	if (abs(grid_hashf.x - float(grid_size.x)) < 10e-10)
+		grid_hash_floor.x -= 1.0f;
+	if (abs(grid_hashf.y - float(grid_size.y)) < 10e-10)
+		grid_hash_floor.y -= 1.0f;
+	if (abs(grid_hashf.z - float(grid_size.z)) < 10e-10)
+		grid_hash_floor.z -= 1.0f;
 	/*********grid hash********/
-	ivec4 grid_hashi = ivec4(int(grid_hashf.x),
-		int(grid_hashf.y), int(grid_hashf.z), 0);
+	ivec4 grid_hashi = ivec4(int(grid_hash_floor.x),
+		int(grid_hash_floor.y), int(grid_hash_floor.z), 0);
+	int hash_val = grid_hash(grid_hashi.x, grid_hashi.y, grid_hashi.z);
 	/*********grid hash********/
+	//groupMemoryBarrier();
+	int count_ = imageLoad(grid_image_count, hash_val).x;
+	if (count_ == 2)
+		position.w = 1.0f;
+	else
+		position.w = -1.0f;
+
+	barrier();
+	memoryBarrier();
 	int old_head = imageAtomicExchange(grid_image_head,
-		grid_hashi.xyz, item_index);
-	imageAtomicAdd(grid_image_count,
-		ivec3(grid_hashi.x, grid_hashi.y, grid_hashi.z), 100);
+		hash_val, item_index);
+	//imageAtomicAdd(grid_image_count, hash_val, 1);
+	imageAtomicExchange(grid_image_count,
+		hash_val, 2);
 	//position.w = intBitsToFloat(old_head);
-	vec4 test_ = imageLoad(grid_image_count,
-		ivec3(grid_hashi.x, grid_hashi.y, grid_hashi.z));
-	position.w = float(test_.a - 99);
+
 	imageStore(position_image, item_index, position);
+	
+	//int count_ = imageLoad(grid_image_count, 
+	//	hash_val).x;
+	//if (count_ > 0)
+	//	position.w = 1.0f;
+	//else
+	//	position.w = -1.0f;
 	memoryBarrier();
 	/*********1 init grid(positions)*************************/
 
 	/************2 denisity(grid)****************************/
-	//int w_i = grid_hashi.x;
-	//int h_j = grid_hashi.y;
-	//int d_k = grid_hashi.z;
-	//float denisity_i = 0.0f;
-	//vec3 r_i = position.xyz;
-	//for (int i = -1; i <= 1; i++)
-	//{
-	//	for (int j = -1; j <= 1; j++)
-	//	{
-	//		for (int k = -1; k <= 1; k++)
-	//		{
-	//			ivec3 grid_id = ivec3(w_i+i, h_j+j, d_k+k);
-	//			if (grid_id.x >= grid_size.x ||
-	//				grid_id.y >= grid_size.y ||
-	//				grid_id.z >= grid_size.z ||
-	//				grid_id.x < 0 ||
-	//				grid_id.y < 0 ||
-	//				grid_id.z < 0 ) 
-	//				continue;
-	//			uint p_count = imageLoad(grid_image_count, grid_id);
-	//			int ptr = imageLoad(grid_image_head, grid_id);
-	//			while(p_count>0)
-	//			{
-	//				p_count--;
-	//				vec4 position_next = imageLoad(position_image, ptr);
-	//				ptr = floatBitsToInt(position_next.w);
-	//				vec3 r_j = position_next.xyz;
-	//				float distance_ij = distance(r_i, r_j);
-	//				if (distance_ij < smooth_length)
-	//				{
-	//					float be_sum_sqrt = smooth_length * smooth_length
-	//						- distance_ij*distance_ij;
-	//					denisity_i += (be_sum_sqrt*be_sum_sqrt);
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
-	//denisity_i *= denisity_smooth_factor;
-	//velocity.w = denisity_i;
-	//imageStore(velocity_image, item_index, velocity);
-	//memoryBarrier();
+	int w_i = grid_hashi.x;
+	int h_j = grid_hashi.y;
+	int d_k = grid_hashi.z;
+	float denisity_i = 0.0f;
+	vec3 r_i = position.xyz;
+	for (int i = -1; i <= 1; i++)
+	{
+		for (int j = -1; j <= 1; j++)
+		{
+			for (int k = -1; k <= 1; k++)
+			{
+				ivec3 grid_id = ivec3(w_i+i, h_j+j, d_k+k);
+				if (grid_id.x >= grid_size.x ||
+					grid_id.y >= grid_size.y ||
+					grid_id.z >= grid_size.z ||
+					grid_id.x < 0 ||
+					grid_id.y < 0 ||
+					grid_id.z < 0 ) 
+				{
+					//position.w = 1.0f;
+					continue;
+				}
+				int hash_j = grid_hash(grid_id.x, grid_id.y, grid_id.z);
+				int p_count = imageLoad(grid_image_count, hash_j).x;
+				//p_count = 0;
+				if (p_count > 50)
+				{
+					position.w = 1.0f;
+					continue;
+				}
+				//p_count--;
+				int ptr = imageLoad(grid_image_head, hash_j).x;
+				while(p_count > 0)
+				{
+					p_count--;
+					vec4 position_next = imageLoad(position_image, ptr);
+					ptr = floatBitsToInt(position_next.w);
+					vec3 r_j = position_next.xyz;
+					float distance_ij = distance(r_i, r_j);
+					if (distance_ij < smooth_length)
+					{
+						float be_sum_sqrt = smooth_length * smooth_length
+							- distance_ij*distance_ij;
+						denisity_i += pow(be_sum_sqrt, 3.0f);
+					}
+				}
+			}
+		}
+	}
+	denisity_i *= denisity_smooth_factor;
+	velocity.w = denisity_i;
+	imageStore(velocity_image, item_index, velocity);
+	groupMemoryBarrier();
+	//denisity_i -= 2000.0f;
 	/************2 denisity(grid)****************************/
 
 	/********3 acceleration(denisity)************************/
-	//vec3 acceleration_p = vec3(0.0f, 0.0f, 0.0f);
-	//vec3 acceleration_miu = vec3(0.0f, 0.0f, 0.0f);
-	//vec3 u_i = velocity.xyz;
-	//float p_i = press_factor * (denisity_i - 1000.0f);
-	//for (int i = -1; i <= 1; i++)
-	//{
-	//	for (int j = -1; j <= 1; j++)
-	//	{
-	//		for (int k = -1; k <= 1; k++)
-	//		{
-	//			ivec3 grid_id = ivec3(w_i+i, h_j+j, d_k+k);
-	//			if (grid_id.x >= grid_size.x ||
-	//				grid_id.y >= grid_size.y ||
-	//				grid_id.z >= grid_size.z ||
-	//				grid_id.x < 0 ||
-	//				grid_id.y < 0 ||
-	//				grid_id.z < 0 ) 
-	//				continue;
-	//			uint p_count = imageLoad(grid_image_count, grid_id);
-	//			int ptr = imageLoad(grid_image_head, grid_id);
-	//			while(p_count>0)
-	//			{
-	//				p_count--;
-	//				vec4 position_next = imageLoad(position_image, ptr);
-	//				ptr = floatBitsToInt(position_next.w);
-	//				vec3 r_j = position_next.xyz;
-	//				float distance_ij = distance(r_i, r_j);
-	//				if (distance_ij < smooth_length)
-	//				{
-	//					vec4 velocity_denisity = imageLoad(velocity_image, ptr);
-	//					float denisity_j = velocity_denisity.w;
-	//					vec3 u_j = velocity_denisity.xyz;
-	//					float p_j = press_factor * (denisity_j - 1000.0f);
-	//					if (distance_ij > 1e-30)
-	//					{
-	//						acceleration_p += (p_i + p_j)
-	//							*pow(smooth_length - distance_ij, 2.0f)*0.5f
-	//							/(denisity_i*denisity_j*distance_ij)
-	//							*(r_i-r_j);
-	//					}
-	//					acceleration_miu += (smooth_length - distance_ij)
-	//						/(denisity_i*denisity_j)
-	//						*(u_j - u_i);
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
-	//acceleration_miu *= (viscosity*a_smooth_factor);
-	//acceleration_p *= a_smooth_factor;
+	vec3 acceleration_p = vec3(0.0f, 0.0f, 0.0f);
+	vec3 acceleration_miu = vec3(0.0f, 0.0f, 0.0f);
+	vec3 u_i = velocity.xyz;
+	float p_i = press_factor * (denisity_i - 1000.0f);
+	for (int i = -1; i <= 1; i++)
+	{
+		for (int j = -1; j <= 1; j++)
+		{
+			for (int k = -1; k <= 1; k++)
+			{
+				ivec3 grid_id = ivec3(w_i+i, h_j+j, d_k+k);
+				if (grid_id.x >= grid_size.x ||
+					grid_id.y >= grid_size.y ||
+					grid_id.z >= grid_size.z ||
+					grid_id.x < 0 ||
+					grid_id.y < 0 ||
+					grid_id.z < 0 ) 
+					continue;
+				int hash_j = grid_hash(grid_id.x, grid_id.y, grid_id.z);
+				int p_count = imageLoad(grid_image_count, hash_j).x;
+				if (p_count > 50)
+				{
+					position.w = 1.0f;
+					continue;
+				}
+				p_count--;
+				int ptr = imageLoad(grid_image_head, hash_j).x;
+				while(p_count>0)
+				{
+					p_count--;
+					vec4 position_next = imageLoad(position_image, ptr);
+					ptr = floatBitsToInt(position_next.w);
+					vec3 r_j = position_next.xyz;
+					float distance_ij = distance(r_i, r_j);
+					if (distance_ij < smooth_length)
+					{
+						vec4 velocity_denisity = imageLoad(velocity_image, ptr);
+						float denisity_j = velocity_denisity.w;
+						vec3 u_j = velocity_denisity.xyz;
+						float p_j = press_factor * (denisity_j - 1000.0f);
+						if (distance_ij > 1e-10)
+						{
+							acceleration_p += (p_i + p_j)
+								*pow(smooth_length - distance_ij, 2.0f)*0.5f
+								/(denisity_i*denisity_j*distance_ij)
+								*(r_i-r_j);
+						}
+						acceleration_miu += (smooth_length - distance_ij)
+							/(denisity_i*denisity_j)
+							*(u_j - u_i);
+					}
+				}
+			}
+		}
+	}
+	acceleration_miu *= (viscosity*a_smooth_factor);
+	acceleration_p *= a_smooth_factor;
 	vec3 acceleration_i = a_outside/* + acceleration_p + acceleration_miu*/;
 	/********3 acceleration(denisity)************************/
 
@@ -366,9 +414,9 @@ void main(void)\n
 	/*********4 pos/vel(acceleration)************************/
 
 	/******************5 reset*******************************/
-	imageStore(position_image, item_index, vec4(position_new, position.w));
+	imageStore(position_image, item_index, vec4(position_new, float(position.w)));
 	imageStore(velocity_image, item_index, vec4(velocity_new, 0.0f));
-	memoryBarrier();
+	
 	/******************5 reset*******************************/
 }\n
 );
@@ -414,7 +462,7 @@ void main()
 	float mag = dot(N.xy, N.xy);
 
 	if (mag > 1.0) discard;   // kill pixels outside circle
-
+	//if (vNormal.x > 0.5f) discard;
 	N.z = sqrt(1.0-mag);
 	//N = normalize(vNormal);
 	//calculate lighting

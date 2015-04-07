@@ -6,8 +6,8 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <GL/glew.h>
-//#include <GL/glut.h>
-#include <GL/freeglut.h>
+#include <GL/glut.h>
+//#include <GL/freeglut.h>
 #include <math.h>
 
 extern int buttenState = GLUT_LEFT_BUTTON;

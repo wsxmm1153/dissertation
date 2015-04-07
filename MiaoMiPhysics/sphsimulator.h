@@ -31,9 +31,10 @@ public:
 protected:
 private:
 	int grid_x_, grid_y_, grid_z_;
-	GLuint grid_head_tbo;
-	GLuint grid_count_tbo;
-	GLuint grid_pbo_;
+	GLuint grid_head_tbo_;
+	GLuint grid_count_tbo_;
+	GLuint count_buffer_;
+	GLuint head_buffer_;
 };
 
 class SPHSimulator
