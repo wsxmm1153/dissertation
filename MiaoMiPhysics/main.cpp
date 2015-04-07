@@ -138,6 +138,7 @@ void display()
 	
 	glm::mat4 p = Projection;
 	simulator_ptr->display(TIME_STEP);
+	glFinish();
 	renderer_ptr->DrawPoints(&mv, &p);
 	/***************test simulator*************************/
 	//glutWireCube(1.0f);
@@ -156,7 +157,7 @@ int main(int argc, char** argv)
 	init();
 	glutDisplayFunc(display);
 	cameraLoop();
-
+	
 	glutMainLoop();
 
 	return 0;

@@ -47,19 +47,24 @@ SimulateDrawGrid::SimulateDrawGrid()
 	:grid_x_(0),
 	grid_y_(0),
 	grid_z_(0),
-	grid_head_tbo(0),
-	grid_count_tbo(0),
-	grid_pbo_(0)
+	grid_head_tbo_(0),
+	grid_count_tbo_(0),
+	count_buffer_(0),
+	head_buffer_(0)
 {
 
 }
 
 SimulateDrawGrid::~SimulateDrawGrid()
 {
-	if (grid_head_tbo)
-		glDeleteTextures(1, &grid_head_tbo);
-	if (grid_count_tbo)
-		glDeleteTextures(1, &grid_head_tbo);
+	if (grid_head_tbo_)
+		glDeleteTextures(1, &grid_head_tbo_);
+	if (grid_count_tbo_)
+		glDeleteTextures(1, &grid_head_tbo_);
+	if (count_buffer_)
+		glDeleteBuffers(1, &count_buffer_);
+	if (head_buffer_)
+		glDeleteBuffers(1, &head_buffer_);
 }
 
 void SimulateDrawGrid::InitGPUResource(const glm::ivec3 size_3d)
@@ -68,24 +73,53 @@ void SimulateDrawGrid::InitGPUResource(const glm::ivec3 size_3d)
 	grid_y_ = size_3d.y;
 	grid_z_ = size_3d.z;
 
-	glGenTextures(1, &grid_head_tbo);
-	glBindTexture(GL_TEXTURE_3D, grid_head_tbo);
-	glTexStorage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_);
-	glBindTexture(GL_TEXTURE_3D, 0);
+	//glGenBuffers(1, &grid_pbo_);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, grid_pbo_);
+	//glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(GLint)*grid_x_*grid_y_*grid_z_, 
+	//	0, GL_STATIC_DRAW);
+	//GLint* data_ptr = (GLint*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+	//memset(data_ptr, 0, sizeof(GLint)*grid_x_*grid_y_*grid_z_);
+	//glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-	glGenTextures(1, &grid_count_tbo);
-	glBindTexture(GL_TEXTURE_3D, grid_count_tbo);
-	glTexStorage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_);
-	glBindTexture(GL_TEXTURE_3D, 0);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, grid_pbo_);
+	//glGenTextures(1, &grid_head_tbo);
+	//glActiveTexture(GL_TEXTURE3);
+	//glBindTexture(GL_TEXTURE_3D, grid_head_tbo);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	////glTexStorage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_);
+	//glTexImage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_, 0,
+	//	GL_RED_INTEGER, GL_INT, 0);
+	//glBindTexture(GL_TEXTURE_3D, 0);
 
-	glGenBuffers(1, &grid_pbo_);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, grid_pbo_);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(GLint)*grid_x_*grid_y_*grid_z_, 
-		0, GL_STATIC_DRAW);
-	GLint* data_ptr = (GLint*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-	memset(data_ptr, 0xff, sizeof(GLint)*grid_x_*grid_y_*grid_z_);
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+	//glGenTextures(1, &grid_count_tbo);
+	//glActiveTexture(GL_TEXTURE4);
+	//glBindTexture(GL_TEXTURE_3D, grid_count_tbo);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	////glTexStorage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_);
+	//glTexImage3D(GL_TEXTURE_3D, 0, GL_R32I, grid_x_, grid_y_, grid_z_, 0,
+	//	GL_RED_INTEGER, GL_INT, 0);
+	//glBindTexture(GL_TEXTURE_3D, 0);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	glGenBuffers(1, &count_buffer_);
+	glGenBuffers(1, &head_buffer_);
+	glGenTextures(1, &grid_count_tbo_);
+	glGenTextures(1, &grid_head_tbo_);
+
+	glBindBuffer(GL_ARRAY_BUFFER, count_buffer_);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLint)*grid_x_*grid_y_*grid_z_, 0, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, head_buffer_);
+	glBufferData(GL_ARRAY_BUFFER,sizeof(GLint)*grid_x_*grid_y_*grid_z_, 0, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindTexture(GL_TEXTURE_BUFFER, grid_count_tbo_);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_R32I, count_buffer_);
+	glBindTexture(GL_TEXTURE_BUFFER, grid_head_tbo_);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_R32I, head_buffer_);
+	glBindTexture(GL_TEXTURE_BUFFER, 0);
 }
 
 SPHSimulator::SPHSimulator()
@@ -146,8 +180,8 @@ void SPHSimulator::InitSimulation()
 	float xx = 0.0f;
 	float yy = 0.9f;
 	float zz = 0.0f;
-	GLfloat* init_float_p = new GLfloat[x_*y_*z_*4*sizeof(GLfloat)];
-	GLfloat* init_float_v = new GLfloat[x_*y_*z_*4*sizeof(GLfloat)];
+	GLfloat* init_float_p = new GLfloat[x_*y_*z_*4];
+	GLfloat* init_float_v = new GLfloat[x_*y_*z_*4];
 	for(int i = 0; i < x_*y_*z_; i++)
 	{
 		init_float_v[i*4+0] = 0.0f;
@@ -174,9 +208,11 @@ void SPHSimulator::InitSimulation()
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_);
-	glBufferData(GL_ARRAY_BUFFER, x_*y_*z_*4*sizeof(GLfloat), init_float_p, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, x_*y_*z_*4*sizeof(GLfloat),
+		init_float_p, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->velocitys_vbo_);
-	glBufferData(GL_ARRAY_BUFFER, x_*y_*z_*4*sizeof(GLfloat), init_float_v, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, x_*y_*z_*4*sizeof(GLfloat),
+		init_float_v, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	delete init_float_v;
 	delete init_float_p;
@@ -185,27 +221,39 @@ void SPHSimulator::InitSimulation()
 void SPHSimulator::display(float time_step)
 {
 	//reset grid count
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gpu_grid_ptr_->grid_pbo_);
-	glBindTexture(GL_TEXTURE_3D, gpu_grid_ptr_->grid_count_tbo);
+	int x_ = gpu_grid_ptr_->grid_x_;
+	int y_ = gpu_grid_ptr_->grid_y_;
+	int z_ = gpu_grid_ptr_->grid_z_;
 
-	glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0,
-		gpu_grid_ptr_->grid_x_,
-		gpu_grid_ptr_->grid_y_,
-		gpu_grid_ptr_->grid_z_, 
-		GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
-	glBindTexture(GL_TEXTURE_3D, 0);
+	GLint* init_count = new GLint[x_*y_*z_];
+	memset(init_count, 0, sizeof(GLint)*x_*y_*z_);
+	GLint* init_head = new GLint[x_*y_*z_];
+	memset(init_head, 0xffff, sizeof(GLint)*x_*y_*z_);
 
+	glBindBuffer(GL_ARRAY_BUFFER, gpu_grid_ptr_->count_buffer_);
+	glBufferData(GL_ARRAY_BUFFER, x_*y_*z_*sizeof(GLint),
+		init_count, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, gpu_grid_ptr_->head_buffer_);
+	glBufferData(GL_ARRAY_BUFFER, x_*y_*z_*sizeof(GLint),
+		init_head, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	delete init_head;
+	delete init_count;
+
+	glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 	glUseProgram(simulator_program_);
+	
 	glBindImageTexture(2, gpu_particles_ptr_->positions_tbo_,
 		0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	glBindImageTexture(3, gpu_particles_ptr_->velocitys_tbo_,
 		0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-	glBindImageTexture(0, gpu_grid_ptr_->grid_head_tbo,
-		0, GL_FALSE, 0, GL_READ_WRITE, GL_R32I);
-	glBindImageTexture(1, gpu_grid_ptr_->grid_count_tbo,
-		0, GL_FALSE, 0, GL_READ_WRITE, GL_R32I);
+	glBindImageTexture(0, gpu_grid_ptr_->grid_head_tbo_,
+		0, GL_TRUE, 0, GL_READ_WRITE, GL_R32I);
+	glBindImageTexture(1, gpu_grid_ptr_->grid_count_tbo_,
+		0, GL_TRUE, 0, GL_READ_WRITE, GL_R32I);
 
 	GLint uniform_loc;
+
 	uniform_loc = glGetUniformLocation(simulator_program_, "time_step");
 	glUniform1f(uniform_loc, time_step);
 
@@ -213,7 +261,7 @@ void SPHSimulator::display(float time_step)
 	glUniform1f(uniform_loc, SMOOTH_LENGTH);
 
 	uniform_loc = glGetUniformLocation(simulator_program_, "grid_size");
-	glUniform3i(simulator_program_,
+	glUniform3i(uniform_loc,
 		gpu_grid_ptr_->grid_x_,
 		gpu_grid_ptr_->grid_y_,
 		gpu_grid_ptr_->grid_z_);
@@ -235,10 +283,11 @@ void SPHSimulator::display(float time_step)
 	glUniform1f(uniform_loc, factors);
 
 	uniform_loc = glGetUniformLocation(simulator_program_, "a_outside");
-	glUniform3f(uniform_loc, 1.0f, -9.8f, 0.0f);
-
+	glUniform3f(uniform_loc, 0.0f, -10.0f, 0.0f);
+	glFinish();
 	glDispatchCompute(NUM, 1, 1);
 	
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
+	glFinish();
 }
