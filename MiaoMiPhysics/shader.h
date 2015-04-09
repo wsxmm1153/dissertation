@@ -25,6 +25,7 @@ extern const char* pointSpriteFragmentShader;
 extern const char* sphGridComputer;
 extern const char* sphDenisityComputer;
 extern const char* sphAccelerationComputer;
+extern const char* collisionComputer;
 
 #include <GL/glew.h>
 #include <stdio.h>

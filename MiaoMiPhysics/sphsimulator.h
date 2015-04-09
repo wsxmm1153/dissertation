@@ -62,6 +62,7 @@ private:
 	GLuint grid_program_;
 	GLuint denisity_program_;
 	GLuint acceleration_program_;
+	GLuint collision_program_;
 	GLuint scene_voxel_data_tbo_;
 	GLuint lock_image_tbo_;
 	GLuint lock_image_buffer_;

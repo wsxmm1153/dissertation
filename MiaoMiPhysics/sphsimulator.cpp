@@ -1,5 +1,5 @@
 #include "sphsimulator.h"
-
+#include "voxelization.h"
 SPHParticles::SPHParticles()
 	:particle_number_(0),
 	buffer_exchange_(0)
@@ -36,9 +36,11 @@ void SPHParticles::InitGPUResource(int particle_number)
 	for (int i = 0; i < 2; i++)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, positions_vbo_[i]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*particle_number, 0, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*particle_number,
+			0, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, velocitys_vbo_[i]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*particle_number, 0, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*particle_number,
+			0, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		glBindTexture(GL_TEXTURE_BUFFER, positions_tbo_[i]);
@@ -140,6 +142,7 @@ SPHSimulator::SPHSimulator()
 	denisity_program_(0),
 	acceleration_program_(0),
 	grid_program_(0),
+	collision_program_(0),
 	scene_voxel_data_tbo_(0),
 	buffer_in_(0)
 {
@@ -156,6 +159,8 @@ SPHSimulator::~SPHSimulator()
 		glDeleteProgram(acceleration_program_);
 	if (denisity_program_)
 		glDeleteProgram(denisity_program_);
+	if (collision_program_)
+		glDeleteProgram(collision_program_);
 	if (gpu_grid_ptr_)
 		delete gpu_grid_ptr_;
 	if (gpu_particles_ptr_)
@@ -184,6 +189,8 @@ void SPHSimulator::InitGPUResource(const int particle_number,
 
 	gpu_grid_ptr_->InitGPUResource(glm::ivec3(grid_x,
 		grid_y, grid_z));
+	InitScene(glm::vec3(0.25f, 0.25f, 0.25f), 0.25f,
+		".\\voxelfiles\\earth_voxel_256.txt");
 }
 
 void SPHSimulator::InitSimulation()
@@ -194,6 +201,7 @@ void SPHSimulator::InitSimulation()
 	grid_program_ = compileComputer(sphGridComputer);
 	denisity_program_ = compileComputer(sphDenisityComputer);
 	acceleration_program_ = compileComputer(sphAccelerationComputer);
+	collision_program_ = compileComputer(collisionComputer);
 
 	int x_ = gpu_grid_ptr_->grid_x_;
 	int y_ = gpu_grid_ptr_->grid_y_;
@@ -320,6 +328,7 @@ void SPHSimulator::display(float time_step)
 	gridStep();
 	denisityStep();
 	accelerationStep(time_step);
+	collisionStep();
 }
 
 void SPHSimulator::gridStep()
@@ -595,5 +604,72 @@ void SPHSimulator::accelerationStep(float time_step)
 void SPHSimulator::InitScene(glm::vec3 middle_pos_in_xyz, float scale_xyz,
 	const char* voxel_file_name)
 {
+	scene_structure_ptr_ = VoxelMaker::LoadVoxelFromFile(voxel_file_name);
+	scene_voxel_data_tbo_ = scene_structure_ptr_->Creat3DTexture();
 
+	float scalef;
+	int scene_x, scene_y, scene_z;
+	scene_structure_ptr_->get_size(scene_x, scene_y, scene_z);
+	if (scale_xyz > 0.0f)
+	{
+		scalef = ((float)scene_x)/scale_xyz;
+	}
+	else
+		scalef = (float)scene_x;
+	scene_matrix_ = glm::scale(glm::mat4(1.0f),
+		glm::vec3(scalef, scalef, scalef));
+
+	scene_matrix_ = glm::translate(scene_matrix_,
+		glm::vec3(0.5f, 0.5f, 0.5f)- middle_pos_in_xyz);
+}
+
+void SPHSimulator::collisionStep()
+{
+	//reset grid count
+
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glUseProgram(collision_program_);
+
+	glBindImageTexture(2, gpu_particles_ptr_->positions_tbo_[buffer_in_],
+		0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+	glBindImageTexture(3, gpu_particles_ptr_->velocitys_tbo_[buffer_in_],
+		0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+	//scene
+	glBindImageTexture(0, scene_voxel_data_tbo_, 0, GL_FALSE,
+		0, GL_READ_ONLY, GL_R8UI);
+	glBindImageTexture(4, gpu_particles_ptr_->positions_tbo_[(buffer_in_+1)%2],
+		0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glBindImageTexture(5, gpu_particles_ptr_->velocitys_tbo_[(buffer_in_+1)%2],
+		0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+	GLint uniform_loc;
+
+	uniform_loc = glGetUniformLocation(collision_program_, "scene_matrix");
+	glUniformMatrix4fv(uniform_loc, 1, GL_FALSE, glm::value_ptr(scene_matrix_));
+
+	int scene_x, scene_y, scene_z;
+	scene_structure_ptr_->get_size(scene_x, scene_y, scene_z);
+
+	uniform_loc = glGetUniformLocation(collision_program_, "scene_size");
+	glUniform3i(uniform_loc, scene_x, scene_y, scene_z);
+
+	glFinish();
+	glDispatchCompute(NUM, 1, 1);
+
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glUseProgram(0);
+	glFinish();
+
+	//glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_[(buffer_in_+1)%2]);
+	//GLfloat* cpu_ptr = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+	//for (int i = 0; i < particle_number_; i++)
+	//{
+	//	if (cpu_ptr[4*i+3] > 0.0f)
+	//		//printf("%d ", (int)cpu_ptr[4*i+3]);
+	//	//if ((i+1)%x_ == 0)	printf("\n");
+	//	//if ((i+1)%(x_*y_) == 0)	
+	//	//	printf("\n");
+	//}
+	//glUnmapBuffer(GL_ARRAY_BUFFER);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
