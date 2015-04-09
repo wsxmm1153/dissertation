@@ -22,6 +22,9 @@ extern const char* drawDepthFragment;
 extern const char* sphSimulatorComputer;
 extern const char* pointSpriteVertexShader;
 extern const char* pointSpriteFragmentShader;
+extern const char* sphGridComputer;
+extern const char* sphDenisityComputer;
+extern const char* sphAccelerationComputer;
 
 #include <GL/glew.h>
 #include <stdio.h>

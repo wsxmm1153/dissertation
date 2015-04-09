@@ -2,6 +2,7 @@
 #define SPH_SIMULATER_H_
 
 #include "glincludes.h"
+class VoxelStructure;
 class FluidRenderer;
 class SPHParticles
 {
@@ -11,14 +12,15 @@ public:
 	SPHParticles();
 	~SPHParticles();
 	void InitGPUResource(int particle_number);
-	GLuint positions_vbo(){return positions_vbo_;}
+	GLuint positions_vbo(){return positions_vbo_[buffer_exchange_];}
 protected:
 private:
 	int particle_number_;
-	GLuint positions_tbo_;
-	GLuint velocitys_tbo_;
-	GLuint positions_vbo_;
-	GLuint velocitys_vbo_;
+	GLuint positions_tbo_[2];
+	GLuint velocitys_tbo_[2];
+	GLuint positions_vbo_[2];
+	GLuint velocitys_vbo_[2];
+	int	buffer_exchange_;
 };
 
 class SimulateDrawGrid
@@ -42,7 +44,8 @@ class SPHSimulator
 public:
 	SPHSimulator();
 	~SPHSimulator();
-	void InitScene();
+	void InitScene(glm::vec3 middle_pos_in_xyz,
+		float scale_xyz, const char* voxel_file_name);
 	void InitGPUResource(const int particle_number, 
 		const glm::vec3 scene_size, const float smooth_length);
 	void InitSimulation();
@@ -56,8 +59,21 @@ private:
 	//SPHParticles* gpu_particles_ptr_;
 	SimulateDrawGrid* gpu_grid_ptr_;
 	GLuint simulator_program_;
+	GLuint grid_program_;
+	GLuint denisity_program_;
+	GLuint acceleration_program_;
 	GLuint scene_voxel_data_tbo_;
+	GLuint lock_image_tbo_;
+	GLuint lock_image_buffer_;
+	int buffer_in_;
+	VoxelStructure* scene_structure_ptr_;
+	glm::mat4 scene_matrix_;
 	//other objects in scene....
+
+	void gridStep();
+	void denisityStep();
+	void accelerationStep(float time_step);
+	void collisionStep();
 };
 
 #endif
