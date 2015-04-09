@@ -132,8 +132,9 @@ void display()
 	/***************test voxel maker*************************/
 
 	/***************test simulator*************************/
-	glm::mat4 model = glm::scale(Model, glm::vec3(2.0f, 2.0f, 2.0f));
-	model = glm::translate(model, glm::vec3(-0.25f, -0.25f, -0.25f));
+	glm::mat4 model = glm::translate(Model, glm::vec3(-1.0f, -1.0f, -1.0f));
+	model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+	//model = glm::translate(model, glm::vec3(-0.25f, -0.25f, -0.25f));
 	glm::mat4 mv = View * model;
 	
 	glm::mat4 p = Projection;

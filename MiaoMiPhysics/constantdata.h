@@ -18,10 +18,10 @@
 #define BOUNDARY_RESISTANCE -0.5f
 #define REST_DENISITY 1.0e3f
 #define MOTION_DAMPING 2.0f
-#define TIME_STEP 5.0e-3f
+#define TIME_STEP 1.0e-3f
 #define PRESSURE_CONSTANT 1.0f
 #define BOUNDARY 0.2f
 #define INIT_CUBE 0.55f
 
-#define NUM 16384
+#define NUM 16384/4
 #endif
