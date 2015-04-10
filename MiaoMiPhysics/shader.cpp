@@ -555,13 +555,14 @@ int sampleFromScene(const ivec3 pos)
 		pos.z < 0)
 		return 0;
 	uint data = imageLoad(scene_image, ivec3(pos.xy, (pos.z)/8)).x;
-	//uint offset_z = uint(mod(pos.z, 8));
-	//uint b_offset = (1 << (7 - offset_z));
-	//uint is_inside = (b_offset & data);
-	//if (is_inside > 0)
-	//	return 1;
-	//return 0;
-	return abs(int(data+128));
+	uint offset_z = uint(mod(pos.z, 8));
+	uint b_offset = (1 << (7 - offset_z));
+	uint is_inside = (b_offset & data);
+	if (is_inside > 0)
+		return 1;
+	return 0;
+	//ivec3 size_t = imageSize(scene_image);
+	//return size_t.z;
 }
 
 ivec4 collisionCoord(const vec4 pos_pre, const vec4 pos_next)
@@ -575,29 +576,32 @@ ivec4 collisionCoord(const vec4 pos_pre, const vec4 pos_next)
 			return ivec4(coord.xyz, 1);
 		return ivec4(0, 0, 0, 0);
 	}
-	float deta_min = 1.0e30f;
+	float deta_min = 1.0e16f;
 	int base_i = 0;
 	for (int i = 0; i < 3 ; i++)
 	{
-		if (deta_min > deta_3f[i] && deta_3f[i] > 1.0e-30f)
+		if (deta_min > abs(deta_3f[i]) && abs(deta_3f[i]) != 0.0f)
 		{
-			deta_min = deta_3f[i];
+			deta_min = abs(deta_3f[i]);
 			base_i = i;
 		}
 	}
-	deta_3f /= deta_min;
+	deta_3f /= (deta_3f[base_i]);
 
 	ivec3 pos_pre_i = ivec3(round(pos_pre.xyz));
 	ivec3 pos_next_i = ivec3(round(pos_next.xyz));
-	int step = abs(pos_next_i[base_i] - pos_pre_i[base_i] + 1);
-	
-	for (int i = 0; i < step; i++)
-	{
-		ivec3 current_coord = ivec3(round(pos_pre.xyz + deta_3f*float(i)));
-		if (sampleFromScene(current_coord) == 1)
-			return ivec4(current_coord, 1);
-	}
-	return ivec4(0, 0, 0, 0);
+	int step = abs(pos_next_i[base_i] - pos_pre_i[base_i])+1;
+	//int test;
+	//for (int i = 0; i < step; i++)
+	//{
+	//	ivec3 current_coord = ivec3(round(pos_pre.xyz + deta_3f*float(i)));
+	//	//test = sampleFromScene(current_coord);
+	//	if (sampleFromScene(current_coord) == 1)
+	//		return ivec4(current_coord, 1);
+	//}
+	//int test = sampleFromScene(pos_next_i);
+	int test = int(step);
+	return ivec4(0, step, 0, 0);
 }
 float weightInPos(const ivec3 pos)
 {
@@ -636,14 +640,16 @@ void main(void)
 
 	vec4 position_pre_in_image = scene_matrix * vec4(position_pre.xyz, 1.0f);
 	vec4 position_next_in_image = scene_matrix * vec4(position_next.xyz, 1.0f);
-	int test = 0;
-	bool b_test = true;
-	if (b_test)
-	{
-		test = sampleFromScene(ivec3(128, 128, 128));
-	}
+	float test = 0;
+	//bool b_test = true;
+	//if (b_test)
+	//{
+	//	test = sampleFromScene(ivec3(56, 128, 128));
+	//}
 	ivec4 collision_v4 = collisionCoord(position_pre_in_image,
 		position_next_in_image);
+	//test = (distance(position_pre.xyz,position_next.xyz));
+	test = float(collision_v4.y);
 	if (collision_v4.w == 1)
 	{
 		vec3 normal = findNormal(ivec3(collision_v4.xyz));

@@ -189,7 +189,7 @@ void SPHSimulator::InitGPUResource(const int particle_number,
 
 	gpu_grid_ptr_->InitGPUResource(glm::ivec3(grid_x,
 		grid_y, grid_z));
-	InitScene(glm::vec3(0.25f, 0.25f, 0.25f), 0.25f,
+	InitScene(glm::vec3(0.25f, 0.25f, 0.25f), 0.5f,
 		".\\voxelfiles\\earth_voxel_256.txt");
 }
 
@@ -635,7 +635,7 @@ void SPHSimulator::collisionStep()
 	glBindImageTexture(3, gpu_particles_ptr_->velocitys_tbo_[buffer_in_],
 		0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 	//scene
-	glBindImageTexture(0, scene_voxel_data_tbo_, 0, GL_FALSE,
+	glBindImageTexture(0, scene_voxel_data_tbo_, 0, GL_TRUE,
 		0, GL_READ_ONLY, GL_R8UI);
 	glBindImageTexture(4, gpu_particles_ptr_->positions_tbo_[(buffer_in_+1)%2],
 		0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -660,16 +660,16 @@ void SPHSimulator::collisionStep()
 	glUseProgram(0);
 	glFinish();
 
-	//glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_[(buffer_in_+1)%2]);
-	//GLfloat* cpu_ptr = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
-	//for (int i = 0; i < particle_number_; i++)
-	//{
-	//	if (cpu_ptr[4*i+3] > 0.0f)
-	//		//printf("%d ", (int)cpu_ptr[4*i+3]);
-	//	//if ((i+1)%x_ == 0)	printf("\n");
-	//	//if ((i+1)%(x_*y_) == 0)	
-	//	//	printf("\n");
-	//}
-	//glUnmapBuffer(GL_ARRAY_BUFFER);
-	//glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_[(buffer_in_+1)%2]);
+	GLfloat* cpu_ptr = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+	for (int i = 0; i < particle_number_; i++)
+	{
+		if (cpu_ptr[4*i+3] > 1.0f/* &&cpu_ptr[4*i+3] < 256.0f*/)
+			printf("%d: %f \n", i, cpu_ptr[4*(i+1)+3]);
+		//if ((i+1)%x_ == 0)	printf("\n");
+		//if ((i+1)%(x_*y_) == 0)	
+		//	printf("\n");
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
