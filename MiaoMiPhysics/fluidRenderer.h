@@ -6,7 +6,7 @@ class FluidRenderer
 {
 public:
 	FluidRenderer();
-	FluidRenderer(GLuint pos_vbo);
+	FluidRenderer(GLuint pos_vbo, GLint* particle_number);
 	~FluidRenderer();
 	void DrawFluids();
 	void DrawVolume();
@@ -15,6 +15,7 @@ public:
 protected:
 private:
 	GLuint positons_vbo_;
+	GLint* particle_number_;
 	GLuint point_program_;
 };
 
