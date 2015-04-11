@@ -191,7 +191,7 @@ void SPHSimulator::InitGPUResource(const int particle_number,
 	gpu_grid_ptr_->InitGPUResource(glm::ivec3(grid_x,
 		grid_y, grid_z));
 	InitScene(glm::vec3(0.5f, 0.5f, 0.5f), 0.5f,
-		".\\voxelfiles\\earth_voxel_256.txt");
+		".\\voxelfiles\\rabbit_voxel_256.txt");
 }
 
 void SPHSimulator::InitSimulation()
@@ -240,11 +240,11 @@ void SPHSimulator::InitSimulation()
 	for (int i = 0; i < 2; i++)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_[i]);
-		glBufferData(GL_ARRAY_BUFFER, particle_number_*4*sizeof(GLfloat),
-			init_float_p, GL_DYNAMIC_DRAW);
+		//glBufferData(GL_ARRAY_BUFFER, particle_number_*4*sizeof(GLfloat),
+		//	init_float_p, GL_DYNAMIC_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, particle_number_*4*sizeof(GLfloat), init_float_p);
 		glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->velocitys_vbo_[i]);
-		glBufferData(GL_ARRAY_BUFFER, particle_number_*4*sizeof(GLfloat),
-			init_float_v, GL_DYNAMIC_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, particle_number_*4*sizeof(GLfloat), init_float_v);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
@@ -260,7 +260,9 @@ void SPHSimulator::display(float time_step)
 
 	if (add_particle_)
 	{
-		addParticles(4096);
+		if (particle_number_ + 1024 <= MAX_PARTICLES)
+			addParticles(1024);
+		else	add_particle_ = false;
 	}
 
 	gridStep();
@@ -628,6 +630,7 @@ void SPHSimulator::collisionStep()
 
 void SPHSimulator::addParticles(int add_count)
 {
+	glFinish();
 	float xx = 0.2f;
 	float yy = 0.9f;
 	float zz = 0.2f;
@@ -668,23 +671,23 @@ void SPHSimulator::addParticles(int add_count)
 		glBindTexture(GL_TEXTURE_1D, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_[i]);
 
-		glBufferSubData(GL_ARRAY_BUFFER, particle_number_*4/**sizeof(GLfloat)*/,
-				sizeof(GLfloat)*4*add_count,
-				init_float_p);
+		glBufferSubData(GL_ARRAY_BUFFER, particle_number_*4*sizeof(GLfloat),
+			sizeof(GLfloat)*4*add_count,
+			(const GLvoid*)init_float_p);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->velocitys_vbo_[i]);
 
 		glBufferSubData(GL_ARRAY_BUFFER, particle_number_*4*sizeof(GLfloat), 
-				sizeof(GLfloat)*4*add_count,
-				init_float_v);
+			sizeof(GLfloat)*4*add_count,
+			init_float_v);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-		//glBindTexture(GL_TEXTURE_BUFFER, gpu_particles_ptr_->positions_tbo_[i]);
-		//glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, gpu_particles_ptr_->positions_vbo_[i]);
-		//glBindTexture(GL_TEXTURE_BUFFER, gpu_particles_ptr_->velocitys_tbo_[i]);
-		//glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, gpu_particles_ptr_->velocitys_vbo_[i]);
-		//glBindTexture(GL_TEXTURE_BUFFER, 0);
-
+		glBindTexture(GL_TEXTURE_BUFFER, gpu_particles_ptr_->positions_tbo_[i]);
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, gpu_particles_ptr_->positions_vbo_[i]);
+		glBindTexture(GL_TEXTURE_BUFFER, gpu_particles_ptr_->velocitys_tbo_[i]);
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, gpu_particles_ptr_->velocitys_vbo_[i]);
+		glBindTexture(GL_TEXTURE_BUFFER, 0);
+		glFinish();
 	}
 	particle_number_ += add_count;
 	gpu_particles_ptr_->particle_number_ = particle_number_;
@@ -692,12 +695,14 @@ void SPHSimulator::addParticles(int add_count)
 	delete init_float_v;
 	add_particle_ = false;
 
-	glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_[(buffer_in_+1)%2]);
-	GLfloat* cpu_ptr_v = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
-	
-	for (int i = particle_number_-add_count; i < particle_number_; i++)
-	{
-		printf("%d: %f, %f, %f, %f \n", i, cpu_ptr_v[4*i+0], cpu_ptr_v[4*i+1], cpu_ptr_v[4*i+2], cpu_ptr_v[4*i+3]);
-	}
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+	//glBindBuffer(GL_ARRAY_BUFFER, gpu_particles_ptr_->positions_vbo_[(buffer_in_+1)%2]);
+	//GLfloat* cpu_ptr_v = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+
+	//for (int i = particle_number_-add_count; i < particle_number_; i++)
+	//{
+	//	printf("%d: %f, %f, %f, %f \n", i, cpu_ptr_v[4*i+0], cpu_ptr_v[4*i+1], cpu_ptr_v[4*i+2], cpu_ptr_v[4*i+3]);
+	//}
+	//glUnmapBuffer(GL_ARRAY_BUFFER);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glFinish();
 }

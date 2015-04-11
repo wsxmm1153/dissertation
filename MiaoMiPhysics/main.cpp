@@ -116,8 +116,8 @@ void init(void)
 void display()
 {
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	/***************test renderer*************************/
 	cameraDisplay();
+	/***************test renderer*************************/
 	//glm::mat4 mv = View * Model;
 	//glm::mat4 p = Projection;
 	//int _x,_y,_z;
