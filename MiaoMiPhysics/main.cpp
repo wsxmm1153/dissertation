@@ -107,7 +107,8 @@ void init(void)
 		SMOOTH_LENGTH);
 	simulator_ptr->InitSimulation();
 	GLuint pos_vbo = simulator_ptr->gpu_particles_ptr_->positions_vbo();
-	renderer_ptr = new FluidRenderer(pos_vbo);
+	GLint* number_ptr = simulator_ptr->gpu_particles_ptr_->particle_number_ptr();
+	renderer_ptr = new FluidRenderer(pos_vbo, number_ptr);
 	renderer_ptr->InitPointDraw();
 	/***************test simulator*************************/
 }
@@ -147,6 +148,14 @@ void display()
 	glutSwapBuffers();
 }
 
+void keybord(unsigned char key, int x, int y)
+{
+	if (key == 32)
+	{
+		simulator_ptr->add_particle_ = true;
+	}
+	glutPostRedisplay();
+}
 
 int main(int argc, char** argv)
 {
@@ -158,6 +167,7 @@ int main(int argc, char** argv)
 	init();
 	glutDisplayFunc(display);
 	cameraLoop();
+	glutKeyboardFunc(keybord);
 	
 	glutMainLoop();
 

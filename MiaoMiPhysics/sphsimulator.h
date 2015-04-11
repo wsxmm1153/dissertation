@@ -13,6 +13,7 @@ public:
 	~SPHParticles();
 	void InitGPUResource(int particle_number);
 	GLuint positions_vbo(){return positions_vbo_[buffer_exchange_];}
+	GLint* particle_number_ptr(){return &particle_number_;}
 protected:
 private:
 	int particle_number_;
@@ -50,7 +51,9 @@ public:
 		const glm::vec3 scene_size, const float smooth_length);
 	void InitSimulation();
 	void display(float time_step);
+	void addParticles(int add_count);
 	SPHParticles* gpu_particles_ptr_;
+	bool add_particle_;
 protected:
 private:
 	int particle_number_;
@@ -69,6 +72,7 @@ private:
 	int buffer_in_;
 	VoxelStructure* scene_structure_ptr_;
 	glm::mat4 scene_matrix_;
+	
 	//other objects in scene....
 
 	void gridStep();
