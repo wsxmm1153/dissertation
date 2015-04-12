@@ -23,6 +23,7 @@ void FluidRenderer::DrawPoints(glm::mat4* model_view, glm::mat4* projection)
 	glClearColor(0.0, 0.5, 0.5, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER);
 	glEnable(GL_POINT_SPRITE);
+	glEnable(GL_DEPTH_TEST);
 	glUseProgram(point_program_);
 	glUniform1f(glGetUniformLocation(point_program_, "pointScale"),
 		SCREENHEIGHT / tanf(60.0f*0.5f*(float)M_PI/180.0f));

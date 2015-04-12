@@ -120,7 +120,7 @@ VoxelStructure* VoxelMaker::LoadVoxelFromFile(const char* voxel_path)
 	ifstream ifs;
 	int width, height, depth;
 	ifs.open(voxel_path);
-	char enter;
+	
 	ifs >> width >> height >> depth /*>> enter*/;
 
 	unsigned char* data_ptr 
@@ -576,7 +576,7 @@ void VoxelMaker::DrawSixTimes(const glm::mat4& vm, const glm::mat4& p, GLuint fr
 	glUniformMatrix4fv(p_mat_loc, 1, GL_FALSE, glm::value_ptr(p));
 
 	glBindVertexArray(vao);
-	glDrawArrays(GL_TRIANGLES, 0, vertices_.size());
+	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertices_.size());
 
 	glBindVertexArray(0);
 	glUseProgram(0);

@@ -51,7 +51,9 @@ public:
 		const glm::vec3 scene_size, const float smooth_length);
 	void InitSimulation();
 	void display(float time_step);
+	void addParticles(int add_count);
 	SPHParticles* gpu_particles_ptr_;
+	bool add_particle_;
 protected:
 private:
 	int particle_number_;
@@ -70,7 +72,7 @@ private:
 	int buffer_in_;
 	VoxelStructure* scene_structure_ptr_;
 	glm::mat4 scene_matrix_;
-	bool add_particle_;
+	
 	//other objects in scene....
 
 	void gridStep();

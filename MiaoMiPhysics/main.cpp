@@ -116,8 +116,8 @@ void init(void)
 void display()
 {
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	/***************test renderer*************************/
 	cameraDisplay();
+	/***************test renderer*************************/
 	//glm::mat4 mv = View * Model;
 	//glm::mat4 p = Projection;
 	//int _x,_y,_z;
@@ -148,6 +148,14 @@ void display()
 	glutSwapBuffers();
 }
 
+void keybord(unsigned char key, int x, int y)
+{
+	if (key == 32)
+	{
+		simulator_ptr->add_particle_ = true;
+	}
+	glutPostRedisplay();
+}
 
 int main(int argc, char** argv)
 {
@@ -159,6 +167,7 @@ int main(int argc, char** argv)
 	init();
 	glutDisplayFunc(display);
 	cameraLoop();
+	glutKeyboardFunc(keybord);
 	
 	glutMainLoop();
 
