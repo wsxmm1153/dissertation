@@ -102,21 +102,21 @@ void main(void)\n
 		if (is_inside > 0)\n
 		{\n
 			if (offset_2 == 0)
-				colorStep = vec4(1.0, 1.0, 1.0, 0.1);\n
+				colorStep = vec4(1.0, 1.0, 1.0, 0.3);\n
 			else if (offset_2 == 1)
-				colorStep = vec4(1.0, 0.0, 0.0, 0.1);\n
+				colorStep = vec4(1.0, 0.0, 0.0, 0.3);\n
 			else if (offset_2 == 2)
-				colorStep = vec4(1.0, 0.5, 0.0, 0.1);\n
+				colorStep = vec4(1.0, 0.5, 0.0, 0.3);\n
 			else if (offset_2 == 3)
-				colorStep = vec4(1.0, 1.0, 0.0, 0.1);\n
+				colorStep = vec4(1.0, 1.0, 0.0, 0.3);\n
 			else if (offset_2 == 4)
-				colorStep = vec4(0.0, 1.0, 0.0, 0.1);\n
+				colorStep = vec4(0.0, 1.0, 0.0, 0.3);\n
 			else if (offset_2 == 5)
-				colorStep = vec4(0.0, 0.0, 1.0, 0.1);\n
+				colorStep = vec4(0.0, 0.0, 1.0, 0.3);\n
 			else if (offset_2 == 6)
-				colorStep = vec4(0.0, 0.5, 0.3, 0.1);\n
+				colorStep = vec4(0.0, 0.5, 0.3, 0.3);\n
 			else if (offset_2 == 7)
-				colorStep = vec4(1.0, 0.0, 1.0, 0.1);\n
+				colorStep = vec4(1.0, 0.0, 1.0, 0.3);\n
 		}\n
 		else\n
 			colorStep = vec4(0.0f, 0.0f, 0.0f, 0.0f);\n
@@ -462,12 +462,17 @@ for (int i = -1; i <= 1; i++)
 							*pow(smooth_length - distance_ij, 2.0f)*0.5f
 							/(denisity_i*denisity_j*distance_ij);
 					}
-					//if (denisity_i*denisity_j > 0.0f)
+					else if(ptr != item_index)
 					{
-						acceleration_miu += (smooth_length - distance_ij)
+						distance_ij = 10e-20f;
+						acceleration_p += (r_i-r_j) * (p_i + p_j)
+							*pow(smooth_length - distance_ij, 2.0f)*0.5f
+							/(denisity_i*denisity_j*distance_ij);
+					}
+
+					acceleration_miu += (smooth_length - distance_ij)
 							/(denisity_i*denisity_j)
 							*(u_j - u_i);
-					}
 				}
 				ptr = floatBitsToInt(position_next.w);
 				if (ptr < 0)
@@ -567,14 +572,14 @@ int sampleFromScene(const ivec3 pos)
 float weightInPos(const ivec3 pos)
 {
 	int weight_i = 0;
-	for (int i = -2; i <= 2; i++)
+	for (int i = -1; i <= 1; i++)
 	{
-		for (int j = -2; j <= 2; j++)
+		for (int j = -1; j <= 1; j++)
 		{
-			for (int k = -2; k <= 2; k++)
+			for (int k = -1; k <= 1; k++)
 			{
 				int dist = abs(i)+abs(j)+abs(k);
-				weight_i += sampleFromScene(ivec3(i, j, k) + pos)*(7-dist);
+				weight_i += sampleFromScene(ivec3(i, j, k) + pos)*(4-dist);
 			}
 		}
 	}
@@ -625,9 +630,9 @@ vec3 findNormal(const ivec3 pos)
 {
 	vec3 normal_ = vec3(0.0f, 1.0f, 0.0f);
 	//float weight_p = weightInPos(pos);
-	normal_.x = weightInPos(pos+ivec3(2,0,0)) - weightInPos(pos+ivec3(0,0,0));
-	normal_.y = weightInPos(pos+ivec3(0,2,0)) - weightInPos(pos+ivec3(0,0,0));
-	normal_.z = weightInPos(pos+ivec3(0,0,2)) - weightInPos(pos+ivec3(0,0,0));
+	normal_.x = weightInPos(pos+ivec3(1,0,0)) - weightInPos(pos+ivec3(0,0,0));
+	normal_.y = weightInPos(pos+ivec3(0,1,0)) - weightInPos(pos+ivec3(0,0,0));
+	normal_.z = weightInPos(pos+ivec3(0,0,1)) - weightInPos(pos+ivec3(0,0,0));
 	return normalize(normal_);
 }
 
@@ -662,15 +667,16 @@ void main(void)
 		//normal = -normal;
 		//reflect
 		float v_length = length(velocity_next.xyz);
-		vec3 velocity_collision = normalize(velocity_next.xyz
-			- 1.0f * dot(normal, velocity_next.xyz) * normal) * v_length * 1.0f;
+		vec3 velocity_collision = normalize(velocity_pre.xyz
+			- 1.0f * dot(normal, velocity_next.xyz) * normal) /** v_length * 1.0f*/;
 		velocity_next = vec4(velocity_collision.xyz, velocity_next.w);
 
 		vec3 pos_in_image_3f = vec3(float(collision_v4.x),
 			float(collision_v4.y),
 			float(collision_v4.z));
 		float p_w = position_next.w;
-		position_next = scene_matrix_inverse * vec4(pos_in_image_3f.xyz, 1.0f);
+		//position_next = scene_matrix_inverse * vec4(pos_in_image_3f.xyz, 1.0f);
+		position_next = position_pre;
 		position_next.w = p_w;
 	}
 	//scene limit
@@ -700,12 +706,12 @@ void main(void)
 		//velocity_new.x = -velocity_new.x;
 		velocity_next.x = -velocity_next.x * 0.5;
 	}
-	//if (position_next.y <= 0.0f)
-	//{
-	//	position_next.y = 0.0f;
-	//	//velocity_new.y = -velocity_new.y;
-	//	velocity_next.y = -velocity_next.y * 0.5;
-	//}
+	if (position_next.y <= 0.0f)
+	{
+		position_next.y = 0.0f;
+		//velocity_new.y = -velocity_new.y;
+		velocity_next.y = -velocity_next.y * 0.5;
+	}
 	if (position_next.z <= 0.0f)
 	{
 		position_next.z = 0.0f;
@@ -713,19 +719,23 @@ void main(void)
 		velocity_next.z = -velocity_next.z * 0.5;
 	}
 	//if boundary, reset
-	if (position_next.y <= 0.0f)
-	{
-		position_next.y = 0.9f;
-		position_next.x = abs(0.25f - position_next.x);
-		position_next.z = abs(0.25f - position_next.z);
-		velocity_next.xyz = vec3(0.0f, 0.0f, 0.0f);
-		test = -1.0f;
-	}
+	//if (position_next.y <= 0.0f)
+	//{
+	//	position_next.y = 0.9f;
+	//	position_next.x = abs(0.25f - position_next.x);
+	//	position_next.z = abs(0.25f - position_next.z);
+	//	velocity_next.xyz = vec3(0.0f, 0.0f, 0.0f);
+	//	test = -1.0f;
+	//}
 
 	imageStore(position_image_next, item_index, vec4(position_next.xyz,
-		float(test)));
+		1.0f));
 	imageStore(velocity_image_next, item_index, vec4(velocity_next.xyz,
-		float(test2)));
+		1.0f));
+	imageStore(position_image_pre, item_index, vec4(position_next.xyz,
+		1.0f));
+	imageStore(velocity_image_pre, item_index, vec4(velocity_next.xyz,
+		1.0f));
 }
 );
 
