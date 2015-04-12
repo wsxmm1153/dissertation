@@ -189,7 +189,7 @@ FragColor = vec4(/*(z_value+1.0f)/2.0f*/gl_FragCoord.z
 
 const char *sphGridComputer = STRINGIFY(
 #version 430\n
-layout (local_size_x = 1) in;
+layout (local_size_x = 128) in;
 layout (rgba32f, binding = 2) uniform volatile imageBuffer position_image;
 layout (rgba32f, binding = 3) uniform volatile imageBuffer velocity_image;
 layout (r32i, binding = 0) uniform volatile iimageBuffer grid_image_head;
@@ -254,7 +254,7 @@ void main(void)\n
 );
 const char *sphDenisityComputer = STRINGIFY(
 #version 430\n
-	layout (local_size_x = 1) in;
+	layout (local_size_x = 128) in;
 layout (rgba32f, binding = 2) uniform volatile imageBuffer position_image;
 layout (rgba32f, binding = 3) uniform volatile imageBuffer velocity_image;
 layout (r32i, binding = 0) uniform volatile iimageBuffer grid_image_head;
@@ -364,7 +364,7 @@ imageStore(velocity_image_out, item_index, velocity);
 
 const char *sphAccelerationComputer = STRINGIFY(
 #version 430\n
-	layout (local_size_x = 1) in;
+	layout (local_size_x = 128) in;
 layout (rgba32f, binding = 2) uniform volatile imageBuffer position_image;
 layout (rgba32f, binding = 3) uniform volatile imageBuffer velocity_image;
 layout (r32i, binding = 0) uniform volatile iimageBuffer grid_image_head;
@@ -541,7 +541,7 @@ imageStore(velocity_image_out, item_index, vec4(velocity_new.xyz, denisity_test)
 
 const char *collisionComputer = STRINGIFY(
 #version 430\n
-layout (local_size_x = 1) in;
+layout (local_size_x = 128) in;
 layout (rgba32f, binding = 2) uniform volatile imageBuffer position_image_pre;
 layout (rgba32f, binding = 3) uniform volatile imageBuffer velocity_image_pre;
 layout (rgba32f, binding = 4) uniform volatile imageBuffer 	position_image_next;

@@ -5,7 +5,13 @@
 #include "voxelization.h"
 #include "fluidRenderer.h"
 #include "sphsimulator.h"
-
+#include <Windows.h>
+float stime;
+char sfps[40] = "MiaoMiPhysics, fps:  ";
+static float total = 0;	
+static unsigned int tcount = 0;
+int scount = 0;
+float initTime;
 //static VoxelMaker* voxel_maker_ptr_s;
 //static VoxelStructure* voxel_struct_ptr;
 static SPHSimulator* simulator_ptr;
@@ -144,6 +150,26 @@ void display()
 	renderer_ptr->DrawPoints(&mv, &p);
 	/***************test simulator*************************/
 	//glutWireCube(1.0f);
+
+
+	float t = (float)timeGetTime();
+	float dt = t - stime;
+	total += dt*0.001f;
+	stime = t;
+	if(total > 1.0f)
+	{
+		sprintf(&sfps[15], "%f", tcount*1.0f);
+		total = 0;
+		tcount = 0;
+	}
+	tcount ++;
+	scount ++;
+	if (scount == 150)
+	{
+		scount = 0;
+	}
+	glutSetWindowTitle(sfps);
+
 	glutPostRedisplay();
 	glutSwapBuffers();
 }
@@ -153,6 +179,12 @@ void keybord(unsigned char key, int x, int y)
 	if (key == 32)
 	{
 		simulator_ptr->add_particle_ = true;
+		float shutdownTime = (float)timeGetTime();
+		float meanFps = 1000.0f * scount / (shutdownTime - initTime);
+		std::cout << "meanFPS: " << meanFps << '\n' << std::endl;
+
+		scount = 0;
+		initTime = (float)timeGetTime();
 	}
 	glutPostRedisplay();
 }
@@ -164,10 +196,11 @@ int main(int argc, char** argv)
 	glutInitWindowSize(SCREENWIDTH, SCREENHEIGHT);
 	glutInitWindowPosition(0, 0);
 	glutCreateWindow(argv[0]);
+	glutKeyboardFunc(keybord);
 	init();
 	glutDisplayFunc(display);
+	initTime = (float)timeGetTime();
 	cameraLoop();
-	glutKeyboardFunc(keybord);
 	
 	glutMainLoop();
 
