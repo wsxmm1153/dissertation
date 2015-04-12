@@ -1,13 +1,15 @@
 #include "fluidRenderer.h"
 
 FluidRenderer::FluidRenderer()
-	:positons_vbo_(0)
+	:positons_vbo_(0),
+	particle_number_(0)
 {
 }
 
-FluidRenderer::FluidRenderer(GLuint pos_vbo)
+FluidRenderer::FluidRenderer(GLuint pos_vbo, GLint* particle_number)
 {
 	positons_vbo_ = pos_vbo;
+	particle_number_ = particle_number;
 }
 
 void FluidRenderer::InitPointDraw()
@@ -36,7 +38,7 @@ void FluidRenderer::DrawPoints(glm::mat4* model_view, glm::mat4* projection)
 	glVertexAttribPointer(v_loc, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	/*****************/
 	glEnable(GL_PROGRAM_POINT_SIZE);
-	glDrawArrays(GL_POINTS, 0, NUM);
+	glDrawArrays(GL_POINTS, 0, *particle_number_);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(0);

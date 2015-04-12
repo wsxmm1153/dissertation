@@ -564,7 +564,22 @@ int sampleFromScene(const ivec3 pos)
 	//ivec3 size_t = imageSize(scene_image);
 	//return size_t.z;
 }
-
+float weightInPos(const ivec3 pos)
+{
+	int weight_i = 0;
+	for (int i = -2; i <= 2; i++)
+	{
+		for (int j = -2; j <= 2; j++)
+		{
+			for (int k = -2; k <= 2; k++)
+			{
+				int dist = abs(i)+abs(j)+abs(k);
+				weight_i += sampleFromScene(ivec3(i, j, k) + pos)*(7-dist);
+			}
+		}
+	}
+	return float(weight_i);
+}
 ivec4 collisionCoord(const vec4 pos_pre, const vec4 pos_next)
 {
 	vec3 deta_3f = vec3(pos_next.xyz) - vec3(pos_pre.xyz);
@@ -572,60 +587,47 @@ ivec4 collisionCoord(const vec4 pos_pre, const vec4 pos_next)
 	if (deta_len < 1.0e-30f)
 	{
 		ivec3 coord = ivec3(round(pos_next.xyz));
-		if (sampleFromScene(coord) == 1)
+		//if (sampleFromScene(coord) == 1)
+		if (weightInPos(coord) > 0.0f)
 			return ivec4(coord.xyz, 1);
 		return ivec4(0, 0, 0, 0);
 	}
-	float deta_min = 1.0e16f;
+	float deta_max = 0.0f;
 	int base_i = 0;
 	for (int i = 0; i < 3 ; i++)
 	{
-		if (deta_min > abs(deta_3f[i]) && abs(deta_3f[i]) != 0.0f)
+		if (deta_max < abs(deta_3f[i]) && abs(deta_3f[i]) != 0.0f)
 		{
-			deta_min = abs(deta_3f[i]);
+			deta_max = abs(deta_3f[i]);
 			base_i = i;
 		}
 	}
-	deta_3f /= (deta_3f[base_i]);
+	deta_3f /= (abs(deta_3f[base_i]));
 
 	ivec3 pos_pre_i = ivec3(round(pos_pre.xyz));
 	ivec3 pos_next_i = ivec3(round(pos_next.xyz));
 	int step = abs(pos_next_i[base_i] - pos_pre_i[base_i])+1;
 	//int test;
-	//for (int i = 0; i < step; i++)
-	//{
-	//	ivec3 current_coord = ivec3(round(pos_pre.xyz + deta_3f*float(i)));
-	//	//test = sampleFromScene(current_coord);
-	//	if (sampleFromScene(current_coord) == 1)
-	//		return ivec4(current_coord, 1);
-	//}
+	for (int i = 0; i < step; i++)
+	{
+		ivec3 current_coord = ivec3(round(pos_pre.xyz + deta_3f*float(i)));
+		//test = sampleFromScene(current_coord);
+		//if (sampleFromScene(current_coord) == 1)
+		if (weightInPos(current_coord) > 0.0f)
+			return ivec4(current_coord, 1);
+	}
 	//int test = sampleFromScene(pos_next_i);
 	int test = int(step);
-	return ivec4(0, step, 0, 0);
+	return ivec4(0, 0, 0, 0);
 }
-float weightInPos(const ivec3 pos)
-{
-	int weight_i = 0;
-	for (int i = -1; i < 1; i++)
-	{
-		for (int j = -1; j < 1; j++)
-		{
-			for (int k = -1; k < 1; k++)
-			{
-				int dist = abs(i)+abs(j)+abs(k);
-				weight_i += sampleFromScene(ivec3(i, j, k) + pos)*(4-dist);
-			}
-		}
-	}
-	return float(weight_i);
-}
+
 vec3 findNormal(const ivec3 pos)
 {
 	vec3 normal_ = vec3(0.0f, 1.0f, 0.0f);
-	float weight_p = weightInPos(pos);
-	normal_.x = weightInPos(pos+ivec3(1,0,0)) - weight_p;
-	normal_.y = weightInPos(pos+ivec3(0,1,0)) - weight_p;
-	normal_.z = weightInPos(pos+ivec3(0,0,1)) - weight_p;
+	//float weight_p = weightInPos(pos);
+	normal_.x = weightInPos(pos+ivec3(2,0,0)) - weightInPos(pos+ivec3(0,0,0));
+	normal_.y = weightInPos(pos+ivec3(0,2,0)) - weightInPos(pos+ivec3(0,0,0));
+	normal_.z = weightInPos(pos+ivec3(0,0,2)) - weightInPos(pos+ivec3(0,0,0));
 	return normalize(normal_);
 }
 
@@ -640,7 +642,8 @@ void main(void)
 
 	vec4 position_pre_in_image = scene_matrix * vec4(position_pre.xyz, 1.0f);
 	vec4 position_next_in_image = scene_matrix * vec4(position_next.xyz, 1.0f);
-	float test = 0;
+	float test = 0.0f;
+	float test2 = 0.0f;
 	//bool b_test = true;
 	//if (b_test)
 	//{
@@ -653,12 +656,14 @@ void main(void)
 	if (collision_v4.w == 1)
 	{
 		vec3 normal = findNormal(ivec3(collision_v4.xyz));
+		test2 = normal.x;
 		vec3 pos_deta = position_next.xyz - position_pre.xyz;
-		if (dot(normal, pos_deta)>0.0f)
-			normal = -normal;
-
-		vec3 velocity_collision = velocity_next.xyz
-			- dot(normal, velocity_next.xyz) * normal;
+		//if (dot(normal, pos_deta)<0.0f)
+		//normal = -normal;
+		//reflect
+		float v_length = length(velocity_next.xyz);
+		vec3 velocity_collision = normalize(velocity_next.xyz
+			- 1.0f * dot(normal, velocity_next.xyz) * normal) * v_length * 1.0f;
 		velocity_next = vec4(velocity_collision.xyz, velocity_next.w);
 
 		vec3 pos_in_image_3f = vec3(float(collision_v4.x),
@@ -695,21 +700,32 @@ void main(void)
 		//velocity_new.x = -velocity_new.x;
 		velocity_next.x = -velocity_next.x * 0.5;
 	}
-	if (position_next.y <= 0.0f)
-	{
-		position_next.y = 0.0f;
-		//velocity_new.y = -velocity_new.y;
-		velocity_next.y = -velocity_next.y * 0.5;
-	}
+	//if (position_next.y <= 0.0f)
+	//{
+	//	position_next.y = 0.0f;
+	//	//velocity_new.y = -velocity_new.y;
+	//	velocity_next.y = -velocity_next.y * 0.5;
+	//}
 	if (position_next.z <= 0.0f)
 	{
 		position_next.z = 0.0f;
 		//velocity_new.z = -velocity_new.z;
 		velocity_next.z = -velocity_next.z * 0.5;
 	}
+	//if boundary, reset
+	if (position_next.y <= 0.0f)
+	{
+		position_next.y = 0.9f;
+		position_next.x = abs(0.25f - position_next.x);
+		position_next.z = abs(0.25f - position_next.z);
+		velocity_next.xyz = vec3(0.0f, 0.0f, 0.0f);
+		test = -1.0f;
+	}
+
 	imageStore(position_image_next, item_index, vec4(position_next.xyz,
 		float(test)));
-	imageStore(velocity_image_next, item_index, velocity_next);
+	imageStore(velocity_image_next, item_index, vec4(velocity_next.xyz,
+		float(test2)));
 }
 );
 
