@@ -107,7 +107,8 @@ void init(void)
 		SMOOTH_LENGTH);
 	simulator_ptr->InitSimulation();
 	GLuint pos_vbo = simulator_ptr->gpu_particles_ptr_->positions_vbo();
-	renderer_ptr = new FluidRenderer(pos_vbo);
+	GLint* number_ptr = simulator_ptr->gpu_particles_ptr_->particle_number_ptr();
+	renderer_ptr = new FluidRenderer(pos_vbo, number_ptr);
 	renderer_ptr->InitPointDraw();
 	/***************test simulator*************************/
 }
