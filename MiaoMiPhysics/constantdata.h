@@ -1,7 +1,7 @@
 #ifndef CONSTANT_DATA_H_
 #define CONSTANT_DATA_H_
 
-#define MAX_PARTICLES 16384*2
+#define MAX_PARTICLES 16384/2
 #define MAX_GRIDS pow((float)floor((2.0f*BOUNDARY+0.0002f)/SMOOTH_LENGTH+1), 3)
 #define MAX_NEIGHBOURS_PER_PARTICLE 300
 #define MAX_PARTICLES_PER_GRID 300
@@ -23,5 +23,5 @@
 #define BOUNDARY 0.4f
 #define INIT_CUBE 0.55f
 
-#define NUM 16384*2
+#define NUM 16384/8
 #endif
