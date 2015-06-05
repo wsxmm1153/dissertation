@@ -741,59 +741,59 @@ void main(void)
 
 const char *pointSpriteVertexShader = STRINGIFY(
 #version 430\n
-in vec4 vVertex;
-uniform float pointRadius;
-uniform float pointScale;
-smooth out vec3 vNormal;
-uniform mat4 modelview;
-uniform mat4 projection;
-void main()
-{
-	vec3 posEye = vec3(modelview * vec4(vVertex.xyz, 1.0));
-	float dist = length(posEye);
+	in vec4 vVertex; \n
+	uniform float pointRadius; \n
+	uniform float pointScale; \n
+	smooth out vec3 vNormal; \n
+	uniform mat4 modelview; \n
+	uniform mat4 projection; \n
+	void main()\n
+{ \n
+vec3 posEye = vec3(modelview * vec4(vVertex.xyz, 1.0)); \n
+float dist = length(posEye); \n
 	
-	gl_PointSize = pointRadius * (pointScale / dist);
+gl_PointSize = pointRadius * (pointScale / dist); \n
 
-	gl_Position = projection * modelview * vec4(vVertex.xyz, 1.0);
-	//if (vVertex.w > 0.0)
-	//{
-	//	vNormal = vec3(1.0, 0.0, 0.0);
-	//}
-	//else
-		vNormal = vec3(0.0, 0.0, 1.0);
-}
-);
+gl_Position = projection * modelview * vec4(vVertex.xyz, 1.0); \n
+	//if (vVertex.w > 0.0)\n
+	//{\n
+	//	vNormal = vec3(1.0, 0.0, 0.0);\n
+	//}\n
+	//else\n
+	vNormal = vec3(0.0, 0.0, 1.0); \n
+}\n
+); 
 
 
 const char *pointSpriteFragmentShader = STRINGIFY(
 #version 430\n
-in vec3 vNormal;
-void main()
-{
-	const vec3 lightDir = vec3(0.577, 0.577, 0.577);
+	in vec3 vNormal; \n
+	void main()\n
+{ \n
+const vec3 lightDir = vec3(0.577, 0.577, 0.577); \n
 
-	// calculate normal from texture coordinates
-	vec3 N;
-	//N.xy = gl_TexCoord[0].xy*vec2(2.0, -2.0) + vec2(-1.0, 1.0);
-	N.xy = gl_PointCoord*vec2(2.0, -2.0) + vec2(-1.0, 1.0);
+	// calculate normal from texture coordinates\n
+	vec3 N; \n
+	//N.xy = gl_TexCoord[0].xy*vec2(2.0, -2.0) + vec2(-1.0, 1.0);\n
+	N.xy = gl_PointCoord*vec2(2.0, -2.0) + vec2(-1.0, 1.0); \n
 
-	float mag = dot(N.xy, N.xy);
+	float mag = dot(N.xy, N.xy); \n
 
-	if (mag > 1.0) discard;   // kill pixels outside circle
-	//if (vNormal.x < 0.5f) discard;
-	N.z = sqrt(1.0-mag);
-	//N = normalize(vNormal);
-	//calculate lighting
-	float diffuse = max(0.0, dot(lightDir, N));
+	if (mag > 1.0) discard;   // kill pixels outside circle\n
+	//if (vNormal.x < 0.5f) discard;\n
+N.z = sqrt(1.0 - mag); \n
+	//N = normalize(vNormal);\n
+	//calculate lighting\n
+	float diffuse = max(0.0, dot(lightDir, N)); \n
 
-	gl_FragColor = vec4(vNormal, 1.0f) * diffuse;
+	gl_FragColor = vec4(vNormal, 1.0f) * diffuse; \n
 
-	vec3 reflection = reflect(-lightDir, N);
-	float reflectAngle = max(0.0, dot(N, reflection));
-	float spec = pow(reflectAngle, 64);
-	vec4 specColor = vec4(1.0, 1.0, 1.0, 1.0) * gl_FragColor * spec;
-	gl_FragColor += specColor;
-}
+	vec3 reflection = reflect(-lightDir, N); \n
+	float reflectAngle = max(0.0, dot(N, reflection)); \n
+	float spec = pow(reflectAngle, 64); \n
+	vec4 specColor = vec4(1.0, 1.0, 1.0, 1.0) * gl_FragColor * spec; \n
+	gl_FragColor += specColor; \n
+}\n
 );
 
 

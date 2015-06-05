@@ -342,7 +342,7 @@ void SPHSimulator::gridStep()
 	uniform_loc = glGetUniformLocation(grid_program_, "a_outside");
 	glUniform3f(uniform_loc, 1.0f, -10.0f, 0.0f);
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
@@ -461,7 +461,7 @@ void SPHSimulator::denisityStep()
 	uniform_loc = glGetUniformLocation(denisity_program_, "a_outside");
 	glUniform3f(uniform_loc, 0.0f, 0.0f, 0.0f);
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
@@ -534,7 +534,7 @@ void SPHSimulator::accelerationStep(float time_step)
 	uniform_loc = glGetUniformLocation(acceleration_program_, "a_outside");
 	glUniform3f(uniform_loc, 0.0f, -10.0f, 0.0f);
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
@@ -594,7 +594,7 @@ void SPHSimulator::collisionStep()
 	glUniform3i(uniform_loc, scene_x, scene_y, scene_z);
 
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
