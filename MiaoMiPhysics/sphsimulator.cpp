@@ -208,9 +208,9 @@ void SPHSimulator::InitSimulation()
 	int x_ = gpu_grid_ptr_->grid_x_;
 	int y_ = gpu_grid_ptr_->grid_y_;
 	int z_ = gpu_grid_ptr_->grid_z_;
-	float xx = 0.1f;
+	float xx = 0.0001f;
 	float yy = 0.9f;
-	float zz = 0.1f;
+	float zz = 0.001f;
 	GLfloat* init_float_p = new GLfloat[particle_number_*4];
 	GLfloat* init_float_v = new GLfloat[particle_number_*4];
 	for(int i = 0; i < particle_number_; i++)
@@ -228,12 +228,12 @@ void SPHSimulator::InitSimulation()
 		xx += INIT_DISTANCE;
 		if (xx > BOUNDARY)
 		{
-			xx = 0.1f;
+			xx = 0.0001f;
 			zz += INIT_DISTANCE;
 		}
 		if (zz > BOUNDARY)
 		{
-			zz = 0.1f;
+			zz = 0.0001f;
 			yy -= INIT_DISTANCE;
 		}
 	}
@@ -342,7 +342,7 @@ void SPHSimulator::gridStep()
 	uniform_loc = glGetUniformLocation(grid_program_, "a_outside");
 	glUniform3f(uniform_loc, 1.0f, -10.0f, 0.0f);
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
@@ -461,7 +461,7 @@ void SPHSimulator::denisityStep()
 	uniform_loc = glGetUniformLocation(denisity_program_, "a_outside");
 	glUniform3f(uniform_loc, 0.0f, 0.0f, 0.0f);
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
@@ -534,7 +534,7 @@ void SPHSimulator::accelerationStep(float time_step)
 	uniform_loc = glGetUniformLocation(acceleration_program_, "a_outside");
 	glUniform3f(uniform_loc, 0.0f, -10.0f, 0.0f);
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
@@ -594,7 +594,7 @@ void SPHSimulator::collisionStep()
 	glUniform3i(uniform_loc, scene_x, scene_y, scene_z);
 
 	glFinish();
-	glDispatchCompute(particle_number_, 1, 1);
+	glDispatchCompute(particle_number_ / 128, 1, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glUseProgram(0);
