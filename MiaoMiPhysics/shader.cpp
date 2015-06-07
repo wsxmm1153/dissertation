@@ -668,7 +668,7 @@ void main(void)
 		//reflect
 		float v_length = length(velocity_next.xyz);
 		vec3 velocity_collision = normalize(velocity_pre.xyz
-			- 1.0f * dot(normal, velocity_next.xyz) * normal) /** v_length * 1.0f*/;
+			- 1.0f * dot(normal, velocity_next.xyz) * normal) * v_length * 1.0f;
 		velocity_next = vec4(velocity_collision.xyz, velocity_next.w);
 
 		vec3 pos_in_image_3f = vec3(float(collision_v4.x),
@@ -676,7 +676,7 @@ void main(void)
 			float(collision_v4.z));
 		float p_w = position_next.w;
 		//position_next = scene_matrix_inverse * vec4(pos_in_image_3f.xyz, 1.0f);
-		position_next = position_pre;
+		position_next = position_pre + velocity_next * 0.2e-3f;
 		position_next.w = p_w;
 	}
 	//scene limit
@@ -684,39 +684,39 @@ void main(void)
 	{
 		position_next.x = 0.5f;
 		//velocity_new.x = -velocity_new.x;
-		velocity_next.x = -velocity_next.x * 0.5;
+		velocity_next.x = -velocity_next.x * 0.1;
 	}
 	if (position_next.y >= 1.0f)
 	{
 		position_next.y = 1.0f;
 		//velocity_new.y = -velocity_new.y;
 
-		velocity_next.y = -velocity_next.y * 0.5;
+		velocity_next.y = -velocity_next.y * 0.1;
 	}
 	if (position_next.z >= 0.5f)
 	{
 		position_next.z = 0.5f;
 		//velocity_new.z = -velocity_new.z;
-		velocity_next.z = -velocity_next.z * 0.5;
+		velocity_next.z = -velocity_next.z * 0.1;
 	}
 
 	if (position_next.x <= 0.0f)
 	{
 		position_next.x = 0.0f;
 		//velocity_new.x = -velocity_new.x;
-		velocity_next.x = -velocity_next.x * 0.5;
+		velocity_next.x = -velocity_next.x * 0.1;
 	}
 	if (position_next.y <= 0.0f)
 	{
 		position_next.y = 0.0f;
 		//velocity_new.y = -velocity_new.y;
-		velocity_next.y = -velocity_next.y * 0.5;
+		velocity_next.y = -velocity_next.y * 0.1;
 	}
 	if (position_next.z <= 0.0f)
 	{
 		position_next.z = 0.0f;
 		//velocity_new.z = -velocity_new.z;
-		velocity_next.z = -velocity_next.z * 0.5;
+		velocity_next.z = -velocity_next.z * 0.1;
 	}
 	//if boundary, reset
 	//if (position_next.y <= 0.0f)

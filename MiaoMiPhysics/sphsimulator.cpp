@@ -208,9 +208,9 @@ void SPHSimulator::InitSimulation()
 	int x_ = gpu_grid_ptr_->grid_x_;
 	int y_ = gpu_grid_ptr_->grid_y_;
 	int z_ = gpu_grid_ptr_->grid_z_;
-	float xx = 0.1f;
+	float xx = 0.0001f;
 	float yy = 0.9f;
-	float zz = 0.1f;
+	float zz = 0.001f;
 	GLfloat* init_float_p = new GLfloat[particle_number_*4];
 	GLfloat* init_float_v = new GLfloat[particle_number_*4];
 	for(int i = 0; i < particle_number_; i++)
@@ -228,12 +228,12 @@ void SPHSimulator::InitSimulation()
 		xx += INIT_DISTANCE;
 		if (xx > BOUNDARY)
 		{
-			xx = 0.1f;
+			xx = 0.0001f;
 			zz += INIT_DISTANCE;
 		}
 		if (zz > BOUNDARY)
 		{
-			zz = 0.1f;
+			zz = 0.0001f;
 			yy -= INIT_DISTANCE;
 		}
 	}
