@@ -31,6 +31,8 @@ extern const char* thickTextureFragmentShader;
 extern const char* screenSpaceFragmentShader;
 extern const char* phongVertex;
 extern const char* phongFragment;
+extern const char* phongVertex2;
+extern const char* phongFragment2;
 extern const char* OutPutVertex;
 extern const char* OutPutFragment;
 

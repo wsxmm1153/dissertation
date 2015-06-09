@@ -226,7 +226,7 @@ void FluidRenderer::DrawScreenSpace(glm::mat4* model_view, glm::mat4* projection
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glUseProgram(thick_program_);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE/*_MINUS_SRC_ALPHA*/);
 	glUniform1f(glGetUniformLocation(thick_program_, "pointScale"),
 		SCREENHEIGHT / tanf(60.0f*0.5f*(float)M_PI/180.0f));
 	glUniform1f(glGetUniformLocation(thick_program_, "pointRadius"),
@@ -241,9 +241,9 @@ void FluidRenderer::DrawScreenSpace(glm::mat4* model_view, glm::mat4* projection
 	glUniform1i(glGetUniformLocation(thick_program_, "textureY"), SCREENHEIGHT);
 
 	glEnable(GL_TEXTURE_2D);
-	glActiveTexture(GL_TEXTURE2);
+	glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_2D, s_depth_texture_);
-	glUniform1i(glGetUniformLocation(thick_program_, "scene_depth"), 2);
+	glUniform1i(glGetUniformLocation(thick_program_, "scene_depth"), 7);
 
 	glBindBuffer(GL_ARRAY_BUFFER, positons_vbo_);
 	v_loc = glGetAttribLocation(thick_program_, "vVertex");
@@ -251,7 +251,7 @@ void FluidRenderer::DrawScreenSpace(glm::mat4* model_view, glm::mat4* projection
 	glVertexAttribPointer(v_loc, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glDrawArrays(GL_POINTS, 0, *particle_number_);
 
-
+	//draw fluid
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fluid_fbo_);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -300,6 +300,7 @@ void FluidRenderer::DrawScreenSpace(glm::mat4* model_view, glm::mat4* projection
 	
 	glDrawArrays(GL_POINTS, 0, *particle_number_);
 
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);
@@ -314,6 +315,7 @@ void FluidRenderer::InitScene(const char* file_name)
 	ut.loadOBJ(file_name, vertices, texcoords, normals);
 	scene_v_size_ = vertices.size();
 	phone_program_ = compileProgram(phongVertex, phongFragment);
+	phone_program2_ = compileProgram(phongVertex2, phongFragment2);
 	glGenBuffers(1, &scene_p_vbo_);
 	glGenBuffers(1, &scene_n_vbo_);
 	glGenBuffers(1, &scene_t_vbo_);
@@ -362,29 +364,29 @@ void FluidRenderer::DrawScene(glm::mat4* model_view, glm::mat4* projection)
 		, 0, GL_RGBA, GL_FLOAT, 0);
 	//draw scene depth
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, s_depth_fbo_);
-	glUseProgram(phone_program_);
-	glClearColor(0.0f, 0.0f, 0.0f, 100.0f);
+	glUseProgram(phone_program2_);
+	glClearColor(100.0f, 100.0f, 100.0f, 100.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glBindBuffer(GL_ARRAY_BUFFER, scene_p_vbo_);
-	GLuint loc = glGetAttribLocation(phone_program_, "vVertex");
+	GLuint loc = glGetAttribLocation(phone_program2_, "vVertex");
 	glEnableVertexAttribArray(loc);
 	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, scene_n_vbo_);
-	loc = glGetAttribLocation(phone_program_, "vNormal");
+	loc = glGetAttribLocation(phone_program2_, "vNormal");
 	glEnableVertexAttribArray(loc);
 	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, scene_t_vbo_);
-	loc = glGetAttribLocation(phone_program_, "vTexCoords");
+	loc = glGetAttribLocation(phone_program2_, "vTexCoords");
 	glEnableVertexAttribArray(loc);
 	glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	loc = glGetUniformLocation(phone_program_, "mv");
+	loc = glGetUniformLocation(phone_program2_, "mv");
 	glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(*model_view));
-	loc = glGetUniformLocation(phone_program_, "p");
+	loc = glGetUniformLocation(phone_program2_, "p");
 	glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(*projection));
-	loc = glGetUniformLocation(phone_program_, "diffuseColor");
+	loc = glGetUniformLocation(phone_program2_, "diffuseColor");
 	glUniform4f(loc, 0.0f, 0.0f, 0.0f, 1.0f);
 	glDrawArrays(GL_TRIANGLES, 0, scene_v_size_);
 	glUseProgram(0);
@@ -392,7 +394,7 @@ void FluidRenderer::DrawScene(glm::mat4* model_view, glm::mat4* projection)
 
 	//GLint loc;
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, scene_fbo_);
-	glClearColor(0.0f, 0.3f, 0.5f, 1.0f);
+	glClearColor(0.0f, 0.1f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glUseProgram(phone_program_);
 	glBindBuffer(GL_ARRAY_BUFFER, scene_p_vbo_);
@@ -413,8 +415,9 @@ void FluidRenderer::DrawScene(glm::mat4* model_view, glm::mat4* projection)
 	loc = glGetUniformLocation(phone_program_, "p");
 	glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(*projection));
 	loc = glGetUniformLocation(phone_program_, "diffuseColor");
-	glUniform4f(loc, 0.5f, 0.3f, 0.7f, 1.0f);
+	glUniform4f(loc, 0.9f, 0.9f, 0.9f, 1.0f);
 	glDrawArrays(GL_TRIANGLES, 0, scene_v_size_);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glUseProgram(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }

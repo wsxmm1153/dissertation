@@ -48,6 +48,7 @@ private:
 	GLuint scene_n_vbo_;
 	GLuint scene_t_vbo_;
 	GLuint phone_program_;
+	GLuint phone_program2_;
 	GLuint output_program_;
 	GLint scene_v_size_;
 	GLuint easy_vao_;
