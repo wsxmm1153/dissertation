@@ -44,7 +44,9 @@ void cameraDisplay()
 	glm::mat4 translateView = glm::translate(glm::mat4(1.0f), camera_trans_offset);
 	glm::mat4 rotateXView = glm::rotate(translateView, camera_rot_offset.x, glm::vec3(1.0f, 0.0f, 0.0f));
 	View = glm::rotate(rotateXView, camera_rot_offset.y, glm::vec3(0.0f, 1.0f, 0.0f));
-	//Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f, 0.3f, 0.3f));
+	//glm::mat4 rotateXView = glm::rotate(glm::mat4(1.0f), camera_rot_offset.x, glm::vec3(1.0f, 0.0f, 0.0f));
+	//Model = glm::rotate(rotateXView, camera_rot_offset.y, glm::vec3(0.0f, 1.0f, 0.0f));
+	//View = glm::translate(glm::mat4(1.0f), camera_trans_offset);
 }
 
 void mouse(int butten, int state, int x, int y)
@@ -79,22 +81,22 @@ void motion(int x, int y)
 	glutPostRedisplay();
 }
 
-void reshape(int w, int h)
-{
-	if(h == 0)
-		h = 1;
-	//glMatrixMode(GL_PROJECTION);
-	//glLoadIdentity();
-	//gluPerspective(60.0f, (GLfloat)w / (GLfloat)h, 0.1f, 100.0f);
-	//glMatrixMode(GL_MODELVIEW);
-	Projection = glm::perspective(60.0f, (GLfloat)w / (GLfloat)h, 0.1f, 100.0f);
-
-	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
-}
+//void reshape(int w, int h)
+//{
+//	if(h == 0)
+//		h = 1;
+//	//glMatrixMode(GL_PROJECTION);
+//	//glLoadIdentity();
+//	//gluPerspective(60.0f, (GLfloat)w / (GLfloat)h, 0.1f, 100.0f);
+//	//glMatrixMode(GL_MODELVIEW);
+//	Projection = glm::perspective(60.0f, (GLfloat)w / (GLfloat)h, 0.1f, 100.0f);
+//
+//	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+//}
 
 void cameraLoop()
 {
-	glutReshapeFunc(reshape);
+	//glutReshapeFunc(reshape);
 	glutMouseFunc(mouse);
 	glutMotionFunc(motion);
 }

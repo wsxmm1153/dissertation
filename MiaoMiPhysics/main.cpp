@@ -6,6 +6,8 @@
 #include "fluidRenderer.h"
 #include "sphsimulator.h"
 #include <Windows.h>
+
+static GLint screen_width, screen_height;
 float stime;
 char sfps[40] = "MiaoMiPhysics, fps:  ";
 static float total = 0;	
@@ -114,13 +116,17 @@ void init(void)
 	simulator_ptr->InitSimulation();
 	GLuint pos_vbo = simulator_ptr->gpu_particles_ptr_->positions_vbo();
 	GLint* number_ptr = simulator_ptr->gpu_particles_ptr_->particle_number_ptr();
-	renderer_ptr = new FluidRenderer(pos_vbo, number_ptr);
-	renderer_ptr->InitPointDraw();
+	renderer_ptr = new FluidRenderer(&screen_width, &screen_height ,pos_vbo, number_ptr);
+	//renderer_ptr->InitPointDraw();
+	renderer_ptr->InitScreenSpaceDraw();
+	renderer_ptr->InitScene("2.obj");
 	/***************test simulator*************************/
 }
 
 void display()
 {
+	glClearColor(0.0f, 0.0f, 0.0f, 0.1f);
+	
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	cameraDisplay();
 	/***************test renderer*************************/
@@ -139,7 +145,8 @@ void display()
 	/***************test voxel maker*************************/
 
 	/***************test simulator*************************/
-	glm::mat4 model = glm::translate(Model, glm::vec3(-1.0f, -1.0f, -1.0f));
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::translate(Model, glm::vec3(-1.0f, -1.0f, -1.0f));
 	model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
 	//model = glm::translate(model, glm::vec3(-0.25f, -0.25f, -0.25f));
 	glm::mat4 mv = View * model;
@@ -147,7 +154,21 @@ void display()
 	glm::mat4 p = Projection;
 	simulator_ptr->display(TIME_STEP);
 	glFinish();
-	renderer_ptr->DrawPoints(&mv, &p);
+	//renderer_ptr->DrawPoints(&mv, &p);
+	//renderer_ptr->DrawScreenSpace(&mv, &p);
+	glFinish();
+	glm::vec3 center = renderer_ptr->scene_min_ + 0.5f * renderer_ptr->scene_size_;
+	float scale_v = 0.49f/(renderer_ptr->scene_size_.x); 
+	glm::mat4 s_model = glm::mat4(1.0f);
+	//s_model = glm::translate(s_model, center);
+	s_model = glm::scale(s_model, glm::vec3(scale_v, scale_v, scale_v));
+	//s_model = glm::translate(s_model, -center);
+	s_model = glm::translate(s_model, -renderer_ptr->scene_min_);
+
+	glm::mat4 s_mv = mv*s_model;
+	renderer_ptr->DrawScene(&s_mv, &p);
+	renderer_ptr->DrawScreenSpace(&mv, &p);
+	renderer_ptr->OutPut();
 	/***************test simulator*************************/
 	//glutWireCube(1.0f);
 
@@ -189,6 +210,21 @@ void keybord(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
+void reshape(int w, int h)
+{
+	if(h == 0)
+		h = 1;
+	//glMatrixMode(GL_PROJECTION);
+	//glLoadIdentity();
+	//gluPerspective(60.0f, (GLfloat)w / (GLfloat)h, 0.1f, 100.0f);
+	//glMatrixMode(GL_MODELVIEW);
+	Projection = glm::perspective(60.0f, (GLfloat)w / (GLfloat)h, 0.1f, 100.0f);
+
+	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+	screen_width = w;
+	screen_height = h;
+}
+
 int main(int argc, char** argv)
 {
 	glutInit(&argc, argv);
@@ -200,6 +236,7 @@ int main(int argc, char** argv)
 	init();
 	glutDisplayFunc(display);
 	initTime = (float)timeGetTime();
+	glutReshapeFunc(reshape);
 	cameraLoop();
 	
 	glutMainLoop();

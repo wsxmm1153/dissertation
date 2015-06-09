@@ -26,6 +26,13 @@ extern const char* sphGridComputer;
 extern const char* sphDenisityComputer;
 extern const char* sphAccelerationComputer;
 extern const char* collisionComputer;
+extern const char* depthTextureFragmentShader;
+extern const char* thickTextureFragmentShader;
+extern const char* screenSpaceFragmentShader;
+extern const char* phongVertex;
+extern const char* phongFragment;
+extern const char* OutPutVertex;
+extern const char* OutPutFragment;
 
 #include <GL/glew.h>
 #include <stdio.h>
