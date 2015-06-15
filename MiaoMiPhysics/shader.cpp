@@ -835,13 +835,16 @@ N.z = sqrt(1.0 - mag); \n
 	pixPos.z += N.z * eyePos.w;
 vec4 pixPos_S = projection_mat * vec4(pixPos, 1.0f);\n
 vec2 texCoord = vec2((gl_FragCoord.x) / textureX , (gl_FragCoord.y) / textureY);\n
-if ( pixPos_S.z > texture2D(scene_depth, texCoord).a)
-	discard;
+if( pixPos_S.z < -1.0f)/* gl_FragColor = vec4(0.0f, 0.0f, 0.0f, 0.0f)*/discard;\n
+else{
+	if ( pixPos_S.z > texture2D(scene_depth, texCoord).r)
+		discard;
 	//vec3 pixPos = eyePos.xyz + N * eyePos.w;\n
 	//vec4 pixPos_S = projection_mat * vec4(pixPos, 1.0f);\n
 	//float depthColor = pixPos_S.z / pixPos_S.w;
 	//gl_FragColor = vec4(0.5f, 0.8f, 1.0f, texture2D(scene_depth, texCoord).a);\n
-gl_FragColor = vec4(0.5f, 0.8f, 1.0f, 0.07f);\n
+	gl_FragColor = vec4(0.8f, 0.8f, 1.0f, 0.05f);\n
+}
 }\n
 	);
 
@@ -999,6 +1002,61 @@ const char* phongFragment = STRINGIFY(
 	}
 	);
 
+	const char* phongVertex2 = STRINGIFY(
+#version 430\n
+		in vec3 vVertex;
+	in vec3 vNormal;
+	in vec2 vTexCoords;
+	uniform mat4 mv;
+	uniform mat4 p;
+	//uniform vec3 vLightPosition;
+	smooth out vec3 vVaryingNormal;
+	//smooth out vec3 vVaryingLightDir;
+	smooth out vec2 vVaryingTexCoords;
+	smooth out vec4 eyePos;\n
+		void main(void)
+	{
+		vVaryingNormal = normalize((mv * vec4(vNormal, 1.0) -
+			mv * vec4(0.0, 0.0, 0.0, 1.0)).xyz);
+		vec4 vPosition = mv * vec4(vVertex, 1.0);
+		vec3 vPosition3 = vPosition.xyz / vPosition.w;
+		//vVaryingLightDir = vLightPosition - vPosition3;
+		vVaryingTexCoords = vTexCoords;
+		gl_Position = p * vPosition;
+		eyePos = vec4(gl_Position.xyz, 1.0f);
+	}
+	);
+
+	const char* phongFragment2 = STRINGIFY(
+#version 430\n
+		out vec4 vFragColor;
+	//uniform vec4 ambientColor;
+	uniform vec4 diffuseColor;
+	//uniform vec4 specularColor;
+	//uniform sampler2D colorMap;
+	in vec3 vVaryingNormal;
+	in vec3 vVaryingLightDir;
+	in vec2 vVaryingTexCoords;
+	in vec4 eyePos;
+	void main(void)
+	{
+		float diff = max(0.0, dot(normalize(vVaryingNormal),
+			normalize(vec3(1.0f, 1.0f, 1.0f))));
+
+		vFragColor = diff * diffuseColor;
+		float dt = (eyePos.z/eyePos.w);
+		//vFragColor.a = dt;
+		//vec3 vReflection = normalize(reflect(-normalize(vVaryingLightDir), normalize(vVaryingNormal)));
+		//float spec = max(0.0, dot(normalize(vVaryingNormal), vReflection));
+		//if (diff != 0)
+		//{
+		//	float fSpec = pow(spec, 128.0);
+		//	vFragColor.rgb += vec3(fSpec, fSpec, fSpec);
+		//}
+		vFragColor = vec4(dt, dt, dt, dt);
+	}
+	);
+
 	const char* OutPutVertex = STRINGIFY(
 #version 430\n
 	in vec2 vVertex;
@@ -1024,9 +1082,9 @@ const char* phongFragment = STRINGIFY(
 
 	void main(void)
 	{
-		vFragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		//vFragColor = texture2D(fluid_image, vVaryingTexCoords)
-		//	+ texture2D(scene_image, vVaryingTexCoords);
+		//vFragColor = vec4(0.0f, 1.0f, 1.0f, 1.0f);
+		vFragColor = texture2D(fluid_image, vVaryingTexCoords)
+			+ texture2D(scene_image, vVaryingTexCoords);
 	}
 	);
 
