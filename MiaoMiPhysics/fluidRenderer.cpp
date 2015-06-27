@@ -279,6 +279,9 @@ void FluidRenderer::DrawScreenSpace(glm::mat4* model_view, glm::mat4* projection
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, thick_texture_);
 	glUniform1i(glGetUniformLocation(screenspace_program_, "texture_thick"), 1);
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_2D, s_depth_texture_);
+	glUniform1i(glGetUniformLocation(screenspace_program_, "scene_depth"), 7);
 
 	GLfloat g[49] = {
 		0.00000067, 0.00002292, 0.00019117, 0.00038771, 0.00019117, 0.00002292, 0.00000067,
