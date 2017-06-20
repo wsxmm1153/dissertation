@@ -42,12 +42,14 @@ GLuint VoxelStructure::Creat3DTexture()
 	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer_handle);
 	//glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(GLubyte) * width_*height_*depth_/8,
 	//	voxel_data_, GL_STATIC_DRAW);
-	//glTexStorage3D(GL_TEXTURE_3D, 0, GL_R8, width_/8, height_, depth_);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_R8UI, width_, height_, depth_/8);
 
-	//glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0,
-	//	width_/8, height_, depth_, GL_RED, GL_UNSIGNED_BYTE, 0);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, width_, height_, depth_/8,
-		0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, voxel_data_);
+	glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0,
+		width_, height_, depth_ / 8, GL_RED_INTEGER, GL_UNSIGNED_BYTE, voxel_data_);
+	
+	//glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, width_, height_, depth_/8,
+	//	0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, voxel_data_);
 
 	//GLubyte* get_back_ptr = new GLubyte[width_/8*height_*depth_];
 	//memset(get_back_ptr, 0, sizeof(GLubyte) * width_ * height_ * depth_ /8 );
