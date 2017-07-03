@@ -565,8 +565,8 @@ int sampleFromScene(const ivec3 pos)
 	uint offset_z = uint(mod(pos.z, 8));
 	uint b_offset = (1 << (7 - offset_z));
 	uint is_inside = (b_offset & data);
-	//if (is_inside > 0)
-	if (data != 0)
+	if (is_inside > 0)
+	//if (data != 0)
 		return 1;
 	return 0;
 	//ivec3 size_t = imageSize(scene_image);
